@@ -48,10 +48,10 @@ DMA_HandleTypeDef hdma_tim3_ch4_up;
 
 UART_HandleTypeDef huart2;
 
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
+/* Definitions for stergatoare */
+osThreadId_t stergatoareHandle;
+const osThreadAttr_t stergatoare_attributes = {
+  .name = "stergatoare",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
@@ -66,7 +66,7 @@ static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC_Init(void);
 static void MX_TIM3_Init(void);
-void StartDefaultTask(void *argument);
+void Stergatoare(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -111,6 +111,8 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); // Porneste PWM pe timer 3 canal 4 (pin PB1)
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -133,8 +135,8 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  /* creation of stergatoare */
+  stergatoareHandle = osThreadNew(Stergatoare, NULL, &stergatoare_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -427,115 +429,155 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_Stergatoare */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function implementing the stergatoare thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
+/* USER CODE END Header_Stergatoare */
+void Stergatoare(void *argument)
 {
   /* USER CODE BEGIN 5 */
-	while(1){
 
+	uint32_t treaptaCurenta = 0; // Numar Treapta Viteza Curent
 
-	// CONFIGURARE BUTON USER SI LED PT DEBUGGING
+	for(;;){
 
-/*
-		if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) != 1){ //Logica inversa, apasat = 0, neapasat = 1
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); // Apasat = LED ON / Activeaza LED-ul
-		}
-		else{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); // Neapasat = LED OFF / Reseteaza LED-ul
-		}
-
-		HAL_ADC_Start(&hadc);
-		HAL_ADC_PollForConversion(&hadc, HAL_MAX_DELAY);
-		uint32_t adcValue = HAL_ADC_GetValue(&hadc);
-
-
-		if(adcValue == 0){
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); //Daca ADC nu primeste semnal se aprinde ledul
-		}
-		else{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); //Cand primeste semnal, se stinge
-		}
-*/
-
-		uint32_t value[3]; //Joystick ADC Input
-						   //value[0] - sus (X, default = 70-80, sus = 0, jos = 90-95)
-						   //value[1] - dreapta (Y, default = 75-85, dreapta = 0, stanga = 90-95)
-					       //value[2] - buton (SW, default = 1200+, apasat = 0)
+		uint32_t value[3]; 			//Joystick ADC Input
+		  						    //value[0] - sus (X, default = 70-80, sus = 0, jos = 90-95)
+		  						    //value[1] - dreapta (Y, default = 75-85, dreapta = 0, stanga = 90-95)
+		  					        //value[2] - buton (SW, default = 1200+, apasat = 0)
 
 		HAL_ADC_Start_DMA(&hadc, value, 3); // start adc in DMA mode
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
-		///////////////////////////////////////////  JOYSTICK  //////////////////////////////////////////////////
+		////////////////////////////////////  IMPLEMENTARE STERGATOARE  /////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+		// STERGERE X1 - Joystick Sus
 
-		//JOYSTICK X
+		if(value[0] == 0){ // Joystick sus
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(200);
 
-		if(value[0] == 0){ //Sus
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); //Daca ADC nu primeste semnal se aprinde ledul
+			TIM3 -> CCR4 = 1000; // 25%
+			HAL_Delay(200);
+
+			TIM3 -> CCR4 = 1450; // 55%
+			HAL_Delay(200);
+
+			TIM3 -> CCR4 = 2000; // 85%
+			HAL_Delay(200);
+
+			TIM3 -> CCR4 = 2400; // 100%
+			HAL_Delay(250);
+
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(200);
 		}
 		else{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); //Cand primeste semnal, se stinge
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(100);
 		}
 
-		if(value[0] >= 85){ //Jos !!!
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); //Daca ADC nu primeste semnal se aprinde ledul
-		}
-		else{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); //Cand primeste semnal, se stinge
+		// Setare treapta de viteza, maxim 3 trepte
+		if (value[0] >= 85 && treaptaCurenta <= 2){ //Joystick jos
+			treaptaCurenta++;
 		}
 
-		//JOYSTICK Y
+		// TREAPTA 1
 
-		if(value[1] == 0){ //Dreapta
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); //Daca ADC nu primeste semnal se aprinde ledul
+		if(treaptaCurenta == 1)	{
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(150);
+
+			TIM3 -> CCR4 = 1000; // 25%
+			HAL_Delay(150);
+
+			TIM3 -> CCR4 = 1450; // 55%
+			HAL_Delay(150);
+
+			TIM3 -> CCR4 = 2000; // 85%
+			HAL_Delay(150);
+
+			TIM3 -> CCR4 = 2400; // 100%
+			HAL_Delay(150);
+
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(200);
+				}
+
+		// TREAPTA 2
+
+		if(treaptaCurenta == 2)	{
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(100);
+
+			TIM3 -> CCR4 = 1000; // 25%
+			HAL_Delay(100);
+
+			TIM3 -> CCR4 = 1450; // 55%
+			HAL_Delay(100);
+
+			TIM3 -> CCR4 = 2000; // 85%
+			HAL_Delay(100);
+
+			TIM3 -> CCR4 = 2400; // 100%
+			HAL_Delay(100);
+
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(200);
 		}
-		else{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); //Cand primeste semnal, se stinge
+
+		// TREAPTA 3
+
+		if (treaptaCurenta == 3) {
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(75);
+
+			TIM3 -> CCR4 = 1000; // 25%
+			HAL_Delay(75);
+
+			TIM3 -> CCR4 = 1450; // 55%
+			HAL_Delay(75);
+
+			TIM3 -> CCR4 = 2000; // 85%
+			HAL_Delay(75);
+
+			TIM3 -> CCR4 = 2400; // 100%
+			HAL_Delay(75);
+
+			TIM3 -> CCR4 = 500;   // 0%
+			HAL_Delay(200);
 		}
+
+		// RESETARE - Apasare Buton
+
+		if (value[2] == 0){ // Buton apasat
+			TIM3 -> CCR4 = 500; //Motor reset
+			treaptaCurenta = 0;
+			HAL_Delay(200);
+		}
+
+		// STROPIRE PARBRIZ
+
+		if (value[1] == 0) { //Joystick dreapta
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); //Aprindere Led
+			HAL_Delay(2000); // Timp stropire parbriz
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); //Stingere Led
+		}
+
+		// STROPIRE LUNETA
 
 		if(value[1] >= 85){ //Stanga !!!
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); //Daca ADC nu primeste semnal se aprinde ledul
+			for(int i = 0; i < 3; i++){ // Clipire LED X3
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); //
+				HAL_Delay(500);
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+				HAL_Delay(500);
+			}
 		}
-		else{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); //Cand primeste semnal, se stinge
-		}
-
-		//JOYSTICK SW
-
-		if(value[2] == 0){ //Apasat
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); //Daca ADC nu primeste semnal se aprinde ledul
-		}
-		else{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); //Cand primeste semnal, se stinge
-		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////  SERVO  ////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); // Porneste PWM pe timer 3 canal 4 (pin PB1)
-
-		TIM3 -> CCR4 = 500;   // 0%
-		HAL_Delay(1000);
-
-		TIM3 -> CCR4 = 1000; // 25%
-		HAL_Delay(1000);
-
-		TIM3 -> CCR4 = 1450; // 55%
-		HAL_Delay(1000);
-
-		TIM3 -> CCR4 = 2000; // 85%
-		HAL_Delay(1000);
-
-		TIM3 -> CCR4 = 2400; // 100%
-		HAL_Delay(1000);
 
 	}
   /* USER CODE END 5 */
