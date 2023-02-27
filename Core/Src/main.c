@@ -52,10 +52,24 @@ DMA_HandleTypeDef hdma_tim3_ch4_up;
 
 UART_HandleTypeDef huart2;
 
-/* Definitions for stergatoare */
-osThreadId_t stergatoareHandle;
-const osThreadAttr_t stergatoare_attributes = {
-  .name = "stergatoare",
+/* Definitions for controlStergato */
+osThreadId_t controlStergatoHandle;
+const osThreadAttr_t controlStergato_attributes = {
+  .name = "controlStergato",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for readJoystick */
+osThreadId_t readJoystickHandle;
+const osThreadAttr_t readJoystick_attributes = {
+  .name = "readJoystick",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for controlLCD */
+osThreadId_t controlLCDHandle;
+const osThreadAttr_t controlLCD_attributes = {
+  .name = "controlLCD",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
@@ -72,6 +86,8 @@ static void MX_ADC_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_SPI1_Init(void);
 void Stergatoare(void *argument);
+void ReadJoystick(void *argument);
+void ControlLCD(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -79,6 +95,17 @@ void Stergatoare(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+uint32_t treaptaCurenta = 0;  // Numar Treapta Viteza Curent
+uint32_t value[3]; 			  //Joystick ADC Input
+  	  	  	  	  	  	  	  //value[0] - sus (X, default = 70-80, sus = 0, jos = 90-95)
+  			  				  //value[1] - dreapta (Y, default = 75-85, dreapta = 0, stanga = 90-95)
+  			  				  //value[2] - buton (SW, default = 1200+, apasat = 0)
+
+uint32_t actualValue[] = {0,0,0};
+
+
+uint32_t busy = 0;
 
 uint8_t x1[] = {
 		// 'x1', 128x64px
@@ -507,6 +534,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -526,6 +554,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); // Porneste PWM pe timer 3 canal 4 (pin PB1)
+
+
 
   /* USER CODE END 2 */
 
@@ -549,8 +579,14 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of stergatoare */
-  stergatoareHandle = osThreadNew(Stergatoare, NULL, &stergatoare_attributes);
+  /* creation of controlStergato */
+  controlStergatoHandle = osThreadNew(Stergatoare, NULL, &controlStergato_attributes);
+
+  /* creation of readJoystick */
+  readJoystickHandle = osThreadNew(ReadJoystick, NULL, &readJoystick_attributes);
+
+  /* creation of controlLCD */
+  controlLCDHandle = osThreadNew(ControlLCD, NULL, &controlLCD_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -908,33 +944,16 @@ void Stergatoare(void *argument)
 {
   /* USER CODE BEGIN 5 */
 
-	uint32_t treaptaCurenta = 0; // Numar Treapta Viteza Curent
-
-	// initializare LCD
-	st7565_init();
-	st7565_backlight_enable();
-
-	uint32_t value[3]; 			//Joystick ADC Input
-			  						    //value[0] - sus (X, default = 70-80, sus = 0, jos = 90-95)
-			  						    //value[1] - dreapta (Y, default = 75-85, dreapta = 0, stanga = 90-95)
-			  					        //value[2] - buton (SW, default = 1200+, apasat = 0)
-
-	HAL_ADC_Start_DMA(&hadc, value, 3); // start adc in DMA mode
-
-	for(;;){
-
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 		////////////////////////////////////  IMPLEMENTARE STERGATOARE  /////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	for(;;){
+
 		// STERGERE X1 - Joystick Sus
+		if(actualValue[0] == 0 && treaptaCurenta == 0){ // Joystick sus
 
-		if(value[0] == 0 && treaptaCurenta == 0){ // Joystick sus
-
-			//AFISARE LCD
-
-			st7565_drawbitmap(buffer, 0, 0, x1, 128, 64, 1); // copiaza poza in buffer
-			st7565_write_buffer(buffer);	//o scrie pe ecran
+			busy = 1; // un fel de: vezi ca mai trebuie sa afisezi ca nu e gata miscarea motorasului
 
 			//CONTROL SERVO
 
@@ -956,36 +975,32 @@ void Stergatoare(void *argument)
 			TIM3 -> CCR4 = 500;   // 0%
 			HAL_Delay(200);
 
-			st7565_clear_buffer(buffer); 	// goleste buffer
-			st7565_write_buffer(buffer);	// il scrie pe ecran (curata ecranul)
+			busy = 0;
 
 		}
 		else{
 			TIM3 -> CCR4 = 500;   // 0%
 			HAL_Delay(100);
-
-			st7565_clear_buffer(buffer); 	// goleste buffer
-			st7565_write_buffer(buffer);	// il scrie pe ecran (curata ecranul)
 		}
 
 		// Setare treapta de viteza, maxim 3 trepte
-		if (value[0] >= 85 && treaptaCurenta <= 2){ //Joystick jos
+		if (actualValue[0] >= 85 && treaptaCurenta <= 2){ //Joystick jos
 			treaptaCurenta++;
 		}
 
 		// Joystick sus, micsorare treapta viteza
-		if(value[0] == 0 && treaptaCurenta > 0){
+		if(actualValue[0] == 0 && treaptaCurenta > 0){
 			treaptaCurenta--;
+			if (treaptaCurenta == 0){
+				busy = 0;
+			}
 		}
 
 		// TREAPTA 1
 
 		if(treaptaCurenta == 1)	{
 
-			//AFISARE LCD
-
-			st7565_drawbitmap(buffer, 0, 0, treapta1, 128, 64, 1); // copiaza poza in buffer
-			st7565_write_buffer(buffer);	//o scrie pe ecran
+			busy = 1;
 
 			//CONTROL SERVO
 
@@ -1012,10 +1027,7 @@ void Stergatoare(void *argument)
 
 		if(treaptaCurenta == 2)	{
 
-			//AFISARE LCD
-
-			st7565_drawbitmap(buffer, 0, 0, treapta2, 128, 64, 1); // copiaza poza in buffer
-			st7565_write_buffer(buffer);	//o scrie pe ecran
+			busy = 1;
 
 			//CONTROL SERVO
 
@@ -1042,10 +1054,7 @@ void Stergatoare(void *argument)
 
 		if (treaptaCurenta == 3) {
 
-			//AFISARE LCD
-
-			st7565_drawbitmap(buffer, 0, 0, treapta3, 128, 64, 1); // copiaza poza in buffer
-			st7565_write_buffer(buffer);	//o scrie pe ecran
+			busy = 1;
 
 			//CONTROL SERVO
 
@@ -1070,46 +1079,191 @@ void Stergatoare(void *argument)
 
 		// RESETARE - Apasare Buton
 
-		if (value[2] == 0){ // Buton apasat
+		if (actualValue[2] <= 100){ // Buton apasat
 			TIM3 -> CCR4 = 500; //Motor reset
 			treaptaCurenta = 0;
+			busy = 0;
 			HAL_Delay(200);
-
-			st7565_clear_buffer(buffer); 	// goleste buffer
-			st7565_write_buffer(buffer);	// il scrie pe ecran (curata ecranul)
 
 		}
 
 		// STROPIRE PARBRIZ
 
-		if (value[1] == 0) { //Joystick dreapta
-			st7565_drawbitmap(buffer, 0, 0, parbriz, 128, 64, 1); // copiaza poza in buffer
-			st7565_write_buffer(buffer);	//o scrie pe ecran
+		if (actualValue[1] == 0) { //Joystick dreapta
+			busy = 1;
 			HAL_Delay(2000);
+			busy = 0;
 		}
 
 		// STROPIRE LUNETA
 
-		if(value[1] >= 85){ //Stanga !!!
-			st7565_drawbitmap(buffer, 0, 0, luneta, 128, 64, 1); // copiaza poza in buffer
-			st7565_write_buffer(buffer);	//o scrie pe ecran
+		if(actualValue[1] >= 85){ //Stanga !!!
+			busy = 1;
 			HAL_Delay(2000);
+			busy = 0;
 		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////  IMPLEMENTARE LCD  /////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/*
-		st7565_drawbitmap(buffer, 0, 0, ptData, 128, 64, 1); // copiaza poza in buffer
-		st7565_write_buffer(buffer);	//o scrie pe ecran
-
-		st7565_clear_buffer(buffer); 	// goleste buffer
-		st7565_write_buffer(buffer);	// il scrie pe ecran (curata ecranul)
-		*/
 
 	}
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_ReadJoystick */
+/**
+* @brief Function implementing the readJoystick thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ReadJoystick */
+void ReadJoystick(void *argument)
+{
+  /* USER CODE BEGIN ReadJoystick */
+	int INDEX = 0;
+
+	int SUM1 = 0;
+	int SUM2 = 0;
+	int SUM3 = 0;
+
+	int READINGS1[5] = {0,0,0,0,0};
+	int READINGS2[5] = {0,0,0,0,0};
+	int READINGS3[5] = {0,0,0,0,0};
+
+	int AVERAGED1 = 0;
+	int AVERAGED2 = 0;
+	int AVERAGED3 = 0;
+
+	int Value1 = 0;
+	int Value2 = 0;
+	int Value3 = 0;
+
+	HAL_ADC_Start_DMA(&hadc, value, 3); // start adc in DMA mode
+
+  for(;;)  {
+	SUM1 = SUM1 - READINGS1[INDEX];        // Remove the oldest entry from the sum
+	SUM2 = SUM2 - READINGS2[INDEX];        // Remove the oldest entry from the sum
+	SUM3 = SUM3 - READINGS3[INDEX];        // Remove the oldest entry from the sum
+
+	Value1 = value[0];      			   // Read the next sensor value
+	Value2 = value[1];					   // Read the next sensor value
+	Value3 = value[2];				       // Read the next sensor value
+
+	READINGS1[INDEX] = value[0];              // Add the newest reading to the window
+	READINGS2[INDEX] = value[1];              // Add the newest reading to the window
+	READINGS3[INDEX] = value[2];              // Add the newest reading to the window
+
+	SUM1 = SUM1 + Value1;                  // Add the newest reading to the sum
+	SUM2 = SUM2 + Value2;                  // Add the newest reading to the sum
+	SUM3 = SUM3 + Value3;                  // Add the newest reading to the sum
+
+	INDEX = (INDEX+1) % 5;   			   // Increment the index, and wrap to 0 if it exceeds the window size
+
+	AVERAGED1 = SUM1 / 5;      			   // Divide the sum of the window by the window size for the result
+	AVERAGED2 = SUM2 / 5;      			   // Divide the sum of the window by the window size for the result
+	AVERAGED3 = SUM3 / 5;      			   // Divide the sum of the window by the window size for the result
+
+	actualValue[0] = AVERAGED1;
+	actualValue[1] = AVERAGED2;
+	actualValue[2] = AVERAGED3;
+
+	osDelay(25);
+  }
+
+  /* USER CODE END ReadJoystick */
+}
+
+/* USER CODE BEGIN Header_ControlLCD */
+/**
+* @brief Function implementing the controlLCD thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ControlLCD */
+void ControlLCD(void *argument)
+{
+  /* USER CODE BEGIN ControlLCD */
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////  IMPLEMENTARE LCD  /////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	void clearScreen(){	// Curata ecranul
+		st7565_clear_buffer(buffer); 	// goleste buffer
+		st7565_write_buffer(buffer);	// il scrie pe ecran (curata ecranul)
+	}
+	uint8_t cleared = 0;	// Pt treptele de viteza
+
+	// initializare LCD
+	st7565_init();
+	st7565_backlight_enable();
+
+	/* Infinite loop */
+	for(;;)	{
+
+		if (busy == 0){
+			clearScreen();
+			cleared = 0;
+		}
+
+		// STERGERE X1
+		if(actualValue[0] == 0 && treaptaCurenta == 0){ // Joystick sus
+
+			st7565_drawbitmap(buffer, 0, 0, x1, 128, 64, 1); // copiaza poza in buffer
+			st7565_write_buffer(buffer);	//o scrie pe ecran
+		}
+
+		// TEMPORIZATOR
+		// TREAPTA 1
+
+		if(treaptaCurenta == 1)	{
+			if(cleared != 0){	// Verifica daca este nevoie sa curete ecranul pt afisaj
+				clearScreen();	// (trecere de la o treapta la alta)
+				cleared = 0;
+			}
+
+			st7565_drawbitmap(buffer, 0, 0, treapta1, 128, 64, 1); // copiaza poza in buffer
+			st7565_write_buffer(buffer);	//o scrie pe ecran
+		}
+
+		// TREAPTA 2
+
+		if(treaptaCurenta == 2)	{
+			if(cleared != 1){	// Verifica daca este nevoie sa curete ecranul pt afisaj
+				clearScreen();	// (trecere de la o treapta la alta)
+				cleared = 1;
+			}
+
+			st7565_drawbitmap(buffer, 0, 0, treapta2, 128, 64, 1); // copiaza poza in buffer
+			st7565_write_buffer(buffer);	//o scrie pe ecran
+
+		}
+
+		// TREAPTA 3
+
+		if (treaptaCurenta == 3) {
+			if(cleared != 2){	// Verifica daca este nevoie sa curete ecranul pt afisaj
+				clearScreen();	// (trecere de la o treapta la alta)
+				cleared = 2;
+			}
+
+			st7565_drawbitmap(buffer, 0, 0, treapta3, 128, 64, 1); // copiaza poza in buffer
+			st7565_write_buffer(buffer);	//o scrie pe ecran
+		}
+
+		// STROPIRE PARBRIZ
+
+		if (actualValue[1] <= 2) { //Joystick dreapta
+			st7565_drawbitmap(buffer, 0, 0, parbriz, 128, 64, 1); // copiaza poza in buffer
+			st7565_write_buffer(buffer);	//o scrie pe ecran
+		}
+
+		// STROPIRE LUNETA
+
+		if(actualValue[1] >= 85){ //Stanga !!!
+			st7565_drawbitmap(buffer, 0, 0, luneta, 128, 64, 1); // copiaza poza in buffer
+			st7565_write_buffer(buffer);	//o scrie pe ecran
+		}
+
+	}
+	/* USER CODE END ControlLCD */
 }
 
 /**
