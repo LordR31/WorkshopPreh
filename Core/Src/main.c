@@ -97,6 +97,7 @@ void ControlLCD(void *argument);
 /* USER CODE BEGIN 0 */
 
 uint32_t treaptaCurenta = 0;  // Numar Treapta Viteza Curent
+
 uint32_t value[3]; 			  //Joystick ADC Input
   	  	  	  	  	  	  	  //value[0] - sus (X, default = 70-80, sus = 0, jos = 90-95)
   			  				  //value[1] - dreapta (Y, default = 75-85, dreapta = 0, stanga = 90-95)
@@ -104,8 +105,8 @@ uint32_t value[3]; 			  //Joystick ADC Input
 
 uint32_t actualValue[] = {0,0,0};
 
-
-uint32_t busy = 0;
+uint32_t servoBusy = 0;
+uint32_t displayBusy = 0;
 
 uint8_t x1[] = {
 		// 'x1', 128x64px
@@ -534,7 +535,6 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -552,10 +552,6 @@ int main(void)
   MX_TIM3_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); // Porneste PWM pe timer 3 canal 4 (pin PB1)
-
-
 
   /* USER CODE END 2 */
 
@@ -948,14 +944,13 @@ void Stergatoare(void *argument)
 		////////////////////////////////////  IMPLEMENTARE STERGATOARE  /////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); // Porneste PWM pe timer 3 canal 4 (pin PB1)
+
 	for(;;){
 
 		// STERGERE X1 - Joystick Sus
 		if(actualValue[0] == 0 && treaptaCurenta == 0){ // Joystick sus
-
-			busy = 1; // un fel de: vezi ca mai trebuie sa afisezi ca nu e gata miscarea motorasului
-
-			//CONTROL SERVO
+			servoBusy = 1;
 
 			TIM3 -> CCR4 = 500;   // 0%
 			HAL_Delay(200);
@@ -975,8 +970,7 @@ void Stergatoare(void *argument)
 			TIM3 -> CCR4 = 500;   // 0%
 			HAL_Delay(200);
 
-			busy = 0;
-
+			servoBusy = 0;
 		}
 		else{
 			TIM3 -> CCR4 = 500;   // 0%
@@ -991,18 +985,12 @@ void Stergatoare(void *argument)
 		// Joystick sus, micsorare treapta viteza
 		if(actualValue[0] == 0 && treaptaCurenta > 0){
 			treaptaCurenta--;
-			if (treaptaCurenta == 0){
-				busy = 0;
-			}
 		}
 
 		// TREAPTA 1
 
 		if(treaptaCurenta == 1)	{
-
-			busy = 1;
-
-			//CONTROL SERVO
+			servoBusy = 1;
 
 			TIM3 -> CCR4 = 500;   // 0%
 			HAL_Delay(150);
@@ -1026,10 +1014,7 @@ void Stergatoare(void *argument)
 		// TREAPTA 2
 
 		if(treaptaCurenta == 2)	{
-
-			busy = 1;
-
-			//CONTROL SERVO
+			servoBusy = 1;
 
 			TIM3 -> CCR4 = 500;   // 0%
 			HAL_Delay(100);
@@ -1053,10 +1038,7 @@ void Stergatoare(void *argument)
 		// TREAPTA 3
 
 		if (treaptaCurenta == 3) {
-
-			busy = 1;
-
-			//CONTROL SERVO
+			servoBusy = 1;
 
 			TIM3 -> CCR4 = 500;   // 0%
 			HAL_Delay(75);
@@ -1082,25 +1064,23 @@ void Stergatoare(void *argument)
 		if (actualValue[2] <= 100){ // Buton apasat
 			TIM3 -> CCR4 = 500; //Motor reset
 			treaptaCurenta = 0;
-			busy = 0;
-			HAL_Delay(200);
-
+			servoBusy = 0;
 		}
 
 		// STROPIRE PARBRIZ
 
-		if (actualValue[1] == 0) { //Joystick dreapta
-			busy = 1;
+		if (actualValue[1] == 0) { //Joystick dreapta;
+			servoBusy = 1;
 			HAL_Delay(2000);
-			busy = 0;
+			servoBusy = 0;
 		}
 
 		// STROPIRE LUNETA
 
 		if(actualValue[1] >= 85){ //Stanga !!!
-			busy = 1;
+			servoBusy = 1;
 			HAL_Delay(2000);
-			busy = 0;
+			servoBusy = 0;
 		}
 
 	}
@@ -1117,54 +1097,24 @@ void Stergatoare(void *argument)
 void ReadJoystick(void *argument)
 {
   /* USER CODE BEGIN ReadJoystick */
-	int INDEX = 0;
-
-	int SUM1 = 0;
-	int SUM2 = 0;
-	int SUM3 = 0;
-
-	int READINGS1[5] = {0,0,0,0,0};
-	int READINGS2[5] = {0,0,0,0,0};
-	int READINGS3[5] = {0,0,0,0,0};
-
-	int AVERAGED1 = 0;
-	int AVERAGED2 = 0;
-	int AVERAGED3 = 0;
-
-	int Value1 = 0;
-	int Value2 = 0;
-	int Value3 = 0;
-
 	HAL_ADC_Start_DMA(&hadc, value, 3); // start adc in DMA mode
 
   for(;;)  {
-	SUM1 = SUM1 - READINGS1[INDEX];        // Remove the oldest entry from the sum
-	SUM2 = SUM2 - READINGS2[INDEX];        // Remove the oldest entry from the sum
-	SUM3 = SUM3 - READINGS3[INDEX];        // Remove the oldest entry from the sum
+	int sum1 = 0;
+	int sum2 = 0;
+	int sum3 = 0;
 
-	Value1 = value[0];      			   // Read the next sensor value
-	Value2 = value[1];					   // Read the next sensor value
-	Value3 = value[2];				       // Read the next sensor value
+	for(int i = 0; i < 5; i++){
+		// Adauga valorile de la ADC in sume
+		sum1 += value[0];
+		sum2 += value[1];
+		sum3 += value[2];
+	}
 
-	READINGS1[INDEX] = value[0];              // Add the newest reading to the window
-	READINGS2[INDEX] = value[1];              // Add the newest reading to the window
-	READINGS3[INDEX] = value[2];              // Add the newest reading to the window
-
-	SUM1 = SUM1 + Value1;                  // Add the newest reading to the sum
-	SUM2 = SUM2 + Value2;                  // Add the newest reading to the sum
-	SUM3 = SUM3 + Value3;                  // Add the newest reading to the sum
-
-	INDEX = (INDEX+1) % 5;   			   // Increment the index, and wrap to 0 if it exceeds the window size
-
-	AVERAGED1 = SUM1 / 5;      			   // Divide the sum of the window by the window size for the result
-	AVERAGED2 = SUM2 / 5;      			   // Divide the sum of the window by the window size for the result
-	AVERAGED3 = SUM3 / 5;      			   // Divide the sum of the window by the window size for the result
-
-	actualValue[0] = AVERAGED1;
-	actualValue[1] = AVERAGED2;
-	actualValue[2] = AVERAGED3;
-
-	osDelay(25);
+	// Pune valorile mediate in array-ul pt Servo si LCD
+	actualValue[0] = sum1 / 5;
+	actualValue[1] = sum2 / 5;
+	actualValue[2] = sum3 / 5;
   }
 
   /* USER CODE END ReadJoystick */
@@ -1185,26 +1135,32 @@ void ControlLCD(void *argument)
 	////////////////////////////////////////  IMPLEMENTARE LCD  /////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	// initializare LCD
+	st7565_init();
+	st7565_backlight_enable();
+
+
 	void clearScreen(){	// Curata ecranul
 		st7565_clear_buffer(buffer); 	// goleste buffer
 		st7565_write_buffer(buffer);	// il scrie pe ecran (curata ecranul)
 	}
 	uint8_t cleared = 0;	// Pt treptele de viteza
 
-	// initializare LCD
-	st7565_init();
-	st7565_backlight_enable();
-
 	/* Infinite loop */
 	for(;;)	{
 
-		if (busy == 0){
+		if(servoBusy == 0){
+			displayBusy = 0;
+		}
+
+		if (displayBusy == 0){
 			clearScreen();
 			cleared = 0;
 		}
 
 		// STERGERE X1
 		if(actualValue[0] == 0 && treaptaCurenta == 0){ // Joystick sus
+			displayBusy = 1;
 
 			st7565_drawbitmap(buffer, 0, 0, x1, 128, 64, 1); // copiaza poza in buffer
 			st7565_write_buffer(buffer);	//o scrie pe ecran
@@ -1214,6 +1170,8 @@ void ControlLCD(void *argument)
 		// TREAPTA 1
 
 		if(treaptaCurenta == 1)	{
+			displayBusy = 1;
+
 			if(cleared != 0){	// Verifica daca este nevoie sa curete ecranul pt afisaj
 				clearScreen();	// (trecere de la o treapta la alta)
 				cleared = 0;
@@ -1226,6 +1184,8 @@ void ControlLCD(void *argument)
 		// TREAPTA 2
 
 		if(treaptaCurenta == 2)	{
+			displayBusy = 1;
+
 			if(cleared != 1){	// Verifica daca este nevoie sa curete ecranul pt afisaj
 				clearScreen();	// (trecere de la o treapta la alta)
 				cleared = 1;
@@ -1239,6 +1199,8 @@ void ControlLCD(void *argument)
 		// TREAPTA 3
 
 		if (treaptaCurenta == 3) {
+			displayBusy = 1;
+
 			if(cleared != 2){	// Verifica daca este nevoie sa curete ecranul pt afisaj
 				clearScreen();	// (trecere de la o treapta la alta)
 				cleared = 2;
@@ -1250,14 +1212,18 @@ void ControlLCD(void *argument)
 
 		// STROPIRE PARBRIZ
 
-		if (actualValue[1] <= 2) { //Joystick dreapta
+		if (actualValue[1] <= 2 && displayBusy != 1) { //Joystick dreapta
+			displayBusy = 1;
+
 			st7565_drawbitmap(buffer, 0, 0, parbriz, 128, 64, 1); // copiaza poza in buffer
 			st7565_write_buffer(buffer);	//o scrie pe ecran
 		}
 
 		// STROPIRE LUNETA
 
-		if(actualValue[1] >= 85){ //Stanga !!!
+		if(actualValue[1] >= 85 && displayBusy != 1){ //Stanga !!!
+			displayBusy = 1;
+
 			st7565_drawbitmap(buffer, 0, 0, luneta, 128, 64, 1); // copiaza poza in buffer
 			st7565_write_buffer(buffer);	//o scrie pe ecran
 		}
