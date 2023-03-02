@@ -1,0 +1,7 @@
+../Core/Src/display.c:9:6:modLucruDisplay	16	static
+../Core/Src/display.c:44:6:displayStergereX1	8	static
+../Core/Src/display.c:51:6:displayTreapta1	8	static
+../Core/Src/display.c:62:6:displayTreapta2	8	static
+../Core/Src/display.c:73:6:displayTreapta3	8	static
+../Core/Src/display.c:84:6:displaySpalareParbriz	8	static
+../Core/Src/display.c:91:6:displaySpalareLuneta	8	static
