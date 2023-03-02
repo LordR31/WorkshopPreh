@@ -7,7 +7,7 @@
 ../Core/Src/main.c:865:13:MX_DMA_Init	16	static
 ../Core/Src/main.c:886:13:MX_GPIO_Init	56	static
 ../Core/Src/main.c:939:6:Stergatoare	16	static
-../Core/Src/main.c:1097:6:ReadJoystick	32	static
-../Core/Src/main.c:1143:7:clearScreen	16	static
-../Core/Src/main.c:1130:6:ControlLCD	48	static
-../Core/Src/main.c:1239:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:1101:6:ReadJoystick	32	static
+../Core/Src/main.c:1147:7:clearScreen	16	static
+../Core/Src/main.c:1134:6:ControlLCD	48	static
+../Core/Src/main.c:1243:6:Error_Handler	8	static,ignoring_inline_asm

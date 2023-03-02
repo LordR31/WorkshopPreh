@@ -949,7 +949,7 @@ void Stergatoare(void *argument)
 	for(;;){
 
 		// STERGERE X1 - Joystick Sus
-		if(actualValue[0] == 0 && treaptaCurenta == 0){ // Joystick sus
+		if(actualValue[0] <= 1000 && treaptaCurenta == 0 && servoBusy != 1){ // Joystick sus
 			servoBusy = 1;
 
 			TIM3 -> CCR4 = 500;   // 0%
@@ -978,12 +978,16 @@ void Stergatoare(void *argument)
 		}
 
 		// Setare treapta de viteza, maxim 3 trepte
-		if (actualValue[0] >= 85 && treaptaCurenta <= 2){ //Joystick jos
+		if (actualValue[0] >= 4000 && treaptaCurenta <= 2){ //Joystick jos
 			treaptaCurenta++;
 		}
 
 		// Joystick sus, micsorare treapta viteza
-		if(actualValue[0] == 0 && treaptaCurenta > 0){
+		if(actualValue[0] <= 1000 && treaptaCurenta > 0){
+			if(treaptaCurenta == 1){
+				servoBusy = 0;
+			}
+
 			treaptaCurenta--;
 		}
 
@@ -1061,7 +1065,7 @@ void Stergatoare(void *argument)
 
 		// RESETARE - Apasare Buton
 
-		if (actualValue[2] <= 100){ // Buton apasat
+		if (actualValue[2] <= 1000){ // Buton apasat
 			TIM3 -> CCR4 = 500; //Motor reset
 			treaptaCurenta = 0;
 			servoBusy = 0;
@@ -1069,7 +1073,7 @@ void Stergatoare(void *argument)
 
 		// STROPIRE PARBRIZ
 
-		if (actualValue[1] == 0) { //Joystick dreapta;
+		if (actualValue[1] <= 1000 && servoBusy != 1) { //Joystick dreapta;
 			servoBusy = 1;
 			HAL_Delay(2000);
 			servoBusy = 0;
@@ -1077,7 +1081,7 @@ void Stergatoare(void *argument)
 
 		// STROPIRE LUNETA
 
-		if(actualValue[1] >= 85){ //Stanga !!!
+		if(actualValue[1] >= 4000 && servoBusy != 1){ //Stanga !!!
 			servoBusy = 1;
 			HAL_Delay(2000);
 			servoBusy = 0;
@@ -1159,7 +1163,7 @@ void ControlLCD(void *argument)
 		}
 
 		// STERGERE X1
-		if(actualValue[0] == 0 && treaptaCurenta == 0){ // Joystick sus
+		if(actualValue[0] <= 1000 && treaptaCurenta == 0){ // Joystick sus
 			displayBusy = 1;
 
 			st7565_drawbitmap(buffer, 0, 0, x1, 128, 64, 1); // copiaza poza in buffer
@@ -1212,7 +1216,7 @@ void ControlLCD(void *argument)
 
 		// STROPIRE PARBRIZ
 
-		if (actualValue[1] <= 2 && displayBusy != 1) { //Joystick dreapta
+		if (actualValue[1] <= 1000 && displayBusy != 1) { //Joystick dreapta
 			displayBusy = 1;
 
 			st7565_drawbitmap(buffer, 0, 0, parbriz, 128, 64, 1); // copiaza poza in buffer
@@ -1221,7 +1225,7 @@ void ControlLCD(void *argument)
 
 		// STROPIRE LUNETA
 
-		if(actualValue[1] >= 85 && displayBusy != 1){ //Stanga !!!
+		if(actualValue[1] >= 4000 && displayBusy != 1){ //Stanga !!!
 			displayBusy = 1;
 
 			st7565_drawbitmap(buffer, 0, 0, luneta, 128, 64, 1); // copiaza poza in buffer
