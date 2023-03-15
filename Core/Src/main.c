@@ -17,6 +17,8 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <function_display.h>
+#include <function_servo.h>
 #include "main.h"
 #include "cmsis_os.h"
 
@@ -25,8 +27,6 @@
 #include "lcd_st7565_pinconf.h"
 #include "lcd_st7565.h"
 #include "font.h"
-#include "display.h"
-#include "servo.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,24 +54,24 @@ DMA_HandleTypeDef hdma_tim3_ch4_up;
 
 UART_HandleTypeDef huart2;
 
-/* Definitions for controlStergato */
-osThreadId_t controlStergatoHandle;
-const osThreadAttr_t controlStergato_attributes = {
-  .name = "controlStergato",
+/* Definitions for Servo */
+osThreadId_t ServoHandle;
+const osThreadAttr_t Servo_attributes = {
+  .name = "Servo",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for readJoystick */
-osThreadId_t readJoystickHandle;
-const osThreadAttr_t readJoystick_attributes = {
-  .name = "readJoystick",
+/* Definitions for Joystick */
+osThreadId_t JoystickHandle;
+const osThreadAttr_t Joystick_attributes = {
+  .name = "Joystick",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for controlLCD */
-osThreadId_t controlLCDHandle;
-const osThreadAttr_t controlLCD_attributes = {
-  .name = "controlLCD",
+/* Definitions for LCD */
+osThreadId_t LCDHandle;
+const osThreadAttr_t LCD_attributes = {
+  .name = "LCD",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
@@ -87,9 +87,9 @@ static void MX_USART2_UART_Init(void);
 static void MX_ADC_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_SPI1_Init(void);
-void Stergatoare(void *argument);
-void ReadJoystick(void *argument);
-void ControlLCD(void *argument);
+void Task_Servo(void *argument);
+void Task_Joystick(void *argument);
+void Task_LCD(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -98,15 +98,11 @@ void ControlLCD(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint32_t treaptaCurenta = 0;  // Numar Treapta Viteza Curent
+uint32_t treaptaCurentaServo = 0;  // Numar treapta viteza curenta
 
-uint32_t value[3]; 			  //Joystick ADC Input
-  	  	  	  	  	  	  	  //value[0] - sus (X, default = 70-80, sus = 0, jos = 90-95)
-  			  				  //value[1] - dreapta (Y, default = 75-85, dreapta = 0, stanga = 90-95)
-  			  				  //value[2] - buton (SW, default = 1200+, apasat = 0)
+uint32_t adcValue[3]; 			   // Joystick ADC Input
 
-uint32_t actualValue[] = {0,0,0};
-int servoBusy = 0;
+int isServoBusy = 0;			   // Semnal de servoBusy pentrut prevenirea suprapunerilor pe display
 
 /* USER CODE END 0 */
 
@@ -167,14 +163,14 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of controlStergato */
-  controlStergatoHandle = osThreadNew(Stergatoare, NULL, &controlStergato_attributes);
+  /* creation of Servo */
+  ServoHandle = osThreadNew(Task_Servo, NULL, &Servo_attributes);
 
-  /* creation of readJoystick */
-  readJoystickHandle = osThreadNew(ReadJoystick, NULL, &readJoystick_attributes);
+  /* creation of Joystick */
+  JoystickHandle = osThreadNew(Task_Joystick, NULL, &Joystick_attributes);
 
-  /* creation of controlLCD */
-  controlLCDHandle = osThreadNew(ControlLCD, NULL, &controlLCD_attributes);
+  /* creation of LCD */
+  LCDHandle = osThreadNew(Task_LCD, NULL, &LCD_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -521,14 +517,14 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_Stergatoare */
+/* USER CODE BEGIN Header_Task_Servo */
 /**
-  * @brief  Function implementing the stergatoare thread.
+  * @brief  Function implementing the Servo thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_Stergatoare */
-void Stergatoare(void *argument)
+/* USER CODE END Header_Task_Servo */
+void Task_Servo(void *argument)
 {
   /* USER CODE BEGIN 5 */
 
@@ -541,145 +537,143 @@ void Stergatoare(void *argument)
 	for(;;){
 
 		// STERGERE X1 - Joystick Sus
-		if(value[0] <= 1000 && treaptaCurenta == 0){ // Joystick sus
-			servoBusy = 1;
-			modLucruServo(1);
-			servoBusy = 0;
+		if(adcValue[0] <= 1000 && treaptaCurentaServo == 0){ // Joystick sus
+			isServoBusy = 1;
+			Servo_modLucruServo(1);
+			isServoBusy = 0;
 		}
 		else{
-			modLucruServo(0);
-			servoBusy = 0;
+			Servo_modLucruServo(0);
+			isServoBusy = 0;
 		}
 
 		// Setare treapta de viteza, maxim 3 trepte
-		if (value[0] >= 4000 && treaptaCurenta <= 2){ //Joystick jos
-			treaptaCurenta++;
+		if (adcValue[0] >= 4000 && treaptaCurentaServo <= 2){ //Joystick jos
+			treaptaCurentaServo++;
 		}
 
 		// Joystick sus, micsorare treapta viteza
-		if(value[0] <= 1000 && treaptaCurenta > 0){
-			treaptaCurenta--;
+		if(adcValue[0] <= 1000 && treaptaCurentaServo > 0){
+			treaptaCurentaServo--;
 		}
 
 		// TREAPTA 1
 
-		if(treaptaCurenta == 1)	{
-			servoBusy = 1;
-			modLucruServo(2);
+		if(treaptaCurentaServo == 1)	{
+			isServoBusy = 1;
+			Servo_modLucruServo(2);
 		}
 
 		// TREAPTA 2
 
-		if(treaptaCurenta == 2)	{
-			servoBusy = 1;
-			modLucruServo(3);
+		if(treaptaCurentaServo == 2)	{
+			isServoBusy = 1;
+			Servo_modLucruServo(3);
 		}
 
 		// TREAPTA 3
 
-		if (treaptaCurenta == 3) {
-			servoBusy = 1;
-			modLucruServo(4);
+		if (treaptaCurentaServo == 3) {
+			isServoBusy = 1;
+			Servo_modLucruServo(4);
 		}
 
 		// RESETARE - Apasare Buton
 
-		if (value[2] <= 1000){ // Buton apasat
+		if (adcValue[2] <= 1000){ // Buton apasat
 			TIM3 -> CCR4 = 500; //Motor reset
-			treaptaCurenta = 0;
-			servoBusy = 0;
+			treaptaCurentaServo = 0;
+			isServoBusy = 0;
 		}
 
 		// STROPIRE PARBRIZ
 
-		if (value[1] <= 1000 && servoBusy != 1) { //Joystick dreapta;
-			servoBusy = 1;
-			modLucruServo(5);
-			servoBusy = 0;
+		if (adcValue[1] <= 1000 && isServoBusy != 1) { //Joystick dreapta;
+			isServoBusy = 1;
+			Servo_modLucruServo(5);
+			isServoBusy = 0;
 		}
 
 		// STROPIRE LUNETA
 
-		if(value[1] >= 4000 && servoBusy != 1){ //Stanga !!!
-			servoBusy = 1;
-			modLucruServo(6);
-			servoBusy = 0;
+		if(adcValue[1] >= 4000 && isServoBusy != 1){ //Stanga !!!
+			isServoBusy = 1;
+			Servo_modLucruServo(6);
+			isServoBusy = 0;
 		}
 
 	}
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_ReadJoystick */
+/* USER CODE BEGIN Header_Task_Joystick */
 /**
-* @brief Function implementing the readJoystick thread.
+* @brief Function implementing the Joystick thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_ReadJoystick */
-void ReadJoystick(void *argument)
+/* USER CODE END Header_Task_Joystick */
+void Task_Joystick(void *argument)
 {
-  /* USER CODE BEGIN ReadJoystick */
-
-	HAL_ADC_Start_DMA(&hadc, value, 3); // start adc in DMA mode
-
-	for(;;){ // fara asta nu merge task-ul ReadJoystick si se strica si ControlLCD :/
-
-	}
-  /* USER CODE END ReadJoystick */
+  /* USER CODE BEGIN Task_Joystick */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Task_Joystick */
 }
 
-/* USER CODE BEGIN Header_ControlLCD */
+/* USER CODE BEGIN Header_Task_LCD */
 /**
-* @brief Function implementing the controlLCD thread.
+* @brief Function implementing the LCD thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_ControlLCD */
-void ControlLCD(void *argument)
+/* USER CODE END Header_Task_LCD */
+void Task_LCD(void *argument)
 {
-  /* USER CODE BEGIN ControlLCD */
+  /* USER CODE BEGIN Task_LCD */
+  /* Infinite loop */
+  for(;;)
+  {
+	  // initializare LCD
+	  	st7565_init();
+	  	st7565_backlight_enable();
 
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////  IMPLEMENTARE LCD  /////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
+	  	/* Infinite loop */
+	  	for(;;)	{
 
-	// initializare LCD
-	st7565_init();
-	st7565_backlight_enable();
+	  		if(isServoBusy == 0){
+	  			Display_modLucruDisplay(0);
+	  		}
 
-	/* Infinite loop */
-	for(;;)	{
+	  		if(adcValue[0] <= 1000 && treaptaCurentaServo == 0){
+	  			Display_modLucruDisplay(1);
+	  		}
 
-		if(servoBusy == 0){
-			modLucruDisplay(0);
-		}
+	  		if(treaptaCurentaServo == 1){
+	  			Display_modLucruDisplay(2);
+	  		}
 
-		if(value[0] <= 1000 && treaptaCurenta == 0){
-			modLucruDisplay(1);
-		}
+	  		if(treaptaCurentaServo == 2){
+	  			Display_modLucruDisplay(3);
+	  		}
 
-		if(treaptaCurenta == 1){
-			modLucruDisplay(2);
-		}
+	  		if(treaptaCurentaServo == 3){
+	  			Display_modLucruDisplay(4);
+	  		}
 
-		if(treaptaCurenta == 2){
-			modLucruDisplay(3);
-		}
+	  		if(adcValue[1] <= 1000){
+	  			Display_modLucruDisplay(5);
+	  		}
 
-		if(treaptaCurenta == 3){
-			modLucruDisplay(4);
-		}
-
-		if(value[1] <= 1000){
-			modLucruDisplay(5);
-		}
-
-		if(value[1] >= 4000){
-			modLucruDisplay(6);
-		}
-	}
-	/* USER CODE END ControlLCD */
+	  		if(adcValue[1] >= 4000){
+	  			Display_modLucruDisplay(6);
+	  		}
+	  	}
+  }
+  /* USER CODE END Task_LCD */
 }
 
 /**

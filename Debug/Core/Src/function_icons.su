@@ -1,0 +1,7 @@
+../Core/Src/function_icons.c:414:6:Icons_loadX1	24	static
+../Core/Src/function_icons.c:419:6:Icons_loadTreapta1	24	static
+../Core/Src/function_icons.c:424:6:Icons_loadTreapta2	24	static
+../Core/Src/function_icons.c:429:6:Icons_loadTreapta3	24	static
+../Core/Src/function_icons.c:434:6:Icons_loadSpalareParbriz	24	static
+../Core/Src/function_icons.c:439:6:Icons_loadSpalareLuneta	24	static
+../Core/Src/function_icons.c:445:6:Icons_clearScreen	8	static

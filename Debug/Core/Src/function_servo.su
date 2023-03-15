@@ -1,0 +1,7 @@
+../Core/Src/function_servo.c:5:6:Servo_modLucruServo	16	static
+../Core/Src/function_servo.c:37:6:Servo_servoStergereX1	8	static
+../Core/Src/function_servo.c:58:6:Servo_servoTreapta1	8	static
+../Core/Src/function_servo.c:78:6:Servo_servoTreapta2	8	static
+../Core/Src/function_servo.c:98:6:Servo_servoTreapta3	8	static
+../Core/Src/function_servo.c:118:6:Servo_servoSpalareParbriz	8	static
+../Core/Src/function_servo.c:122:6:Servo_servoSpalareLuneta	8	static

@@ -5,13 +5,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../Core/Src/display.c \
 ../Core/Src/font.c \
 ../Core/Src/freertos.c \
-../Core/Src/icons.c \
+../Core/Src/function_display.c \
+../Core/Src/function_icons.c \
+../Core/Src/function_servo.c \
 ../Core/Src/lcd_st7565.c \
 ../Core/Src/main.c \
-../Core/Src/servo.c \
 ../Core/Src/stm32f0xx_hal_msp.c \
 ../Core/Src/stm32f0xx_it.c \
 ../Core/Src/syscalls.c \
@@ -19,13 +19,13 @@ C_SRCS += \
 ../Core/Src/system_stm32f0xx.c 
 
 OBJS += \
-./Core/Src/display.o \
 ./Core/Src/font.o \
 ./Core/Src/freertos.o \
-./Core/Src/icons.o \
+./Core/Src/function_display.o \
+./Core/Src/function_icons.o \
+./Core/Src/function_servo.o \
 ./Core/Src/lcd_st7565.o \
 ./Core/Src/main.o \
-./Core/Src/servo.o \
 ./Core/Src/stm32f0xx_hal_msp.o \
 ./Core/Src/stm32f0xx_it.o \
 ./Core/Src/syscalls.o \
@@ -33,13 +33,13 @@ OBJS += \
 ./Core/Src/system_stm32f0xx.o 
 
 C_DEPS += \
-./Core/Src/display.d \
 ./Core/Src/font.d \
 ./Core/Src/freertos.d \
-./Core/Src/icons.d \
+./Core/Src/function_display.d \
+./Core/Src/function_icons.d \
+./Core/Src/function_servo.d \
 ./Core/Src/lcd_st7565.d \
 ./Core/Src/main.d \
-./Core/Src/servo.d \
 ./Core/Src/stm32f0xx_hal_msp.d \
 ./Core/Src/stm32f0xx_it.d \
 ./Core/Src/syscalls.d \
@@ -54,7 +54,7 @@ Core/Src/%.o Core/Src/%.su: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/display.d ./Core/Src/display.o ./Core/Src/display.su ./Core/Src/font.d ./Core/Src/font.o ./Core/Src/font.su ./Core/Src/freertos.d ./Core/Src/freertos.o ./Core/Src/freertos.su ./Core/Src/icons.d ./Core/Src/icons.o ./Core/Src/icons.su ./Core/Src/lcd_st7565.d ./Core/Src/lcd_st7565.o ./Core/Src/lcd_st7565.su ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/servo.d ./Core/Src/servo.o ./Core/Src/servo.su ./Core/Src/stm32f0xx_hal_msp.d ./Core/Src/stm32f0xx_hal_msp.o ./Core/Src/stm32f0xx_hal_msp.su ./Core/Src/stm32f0xx_it.d ./Core/Src/stm32f0xx_it.o ./Core/Src/stm32f0xx_it.su ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f0xx.d ./Core/Src/system_stm32f0xx.o ./Core/Src/system_stm32f0xx.su
+	-$(RM) ./Core/Src/font.d ./Core/Src/font.o ./Core/Src/font.su ./Core/Src/freertos.d ./Core/Src/freertos.o ./Core/Src/freertos.su ./Core/Src/function_display.d ./Core/Src/function_display.o ./Core/Src/function_display.su ./Core/Src/function_icons.d ./Core/Src/function_icons.o ./Core/Src/function_icons.su ./Core/Src/function_servo.d ./Core/Src/function_servo.o ./Core/Src/function_servo.su ./Core/Src/lcd_st7565.d ./Core/Src/lcd_st7565.o ./Core/Src/lcd_st7565.su ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f0xx_hal_msp.d ./Core/Src/stm32f0xx_hal_msp.o ./Core/Src/stm32f0xx_hal_msp.su ./Core/Src/stm32f0xx_it.d ./Core/Src/stm32f0xx_it.o ./Core/Src/stm32f0xx_it.su ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f0xx.d ./Core/Src/system_stm32f0xx.o ./Core/Src/system_stm32f0xx.su
 
 .PHONY: clean-Core-2f-Src
 

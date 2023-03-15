@@ -1,0 +1,7 @@
+../Core/Src/function_display.c:9:6:Display_modLucruDisplay	16	static
+../Core/Src/function_display.c:44:6:Display_displayStergereX1	8	static
+../Core/Src/function_display.c:51:6:Display_displayTreapta1	8	static
+../Core/Src/function_display.c:62:6:Display_displayTreapta2	8	static
+../Core/Src/function_display.c:73:6:Display_displayTreapta3	8	static
+../Core/Src/function_display.c:84:6:Display_displaySpalareParbriz	8	static
+../Core/Src/function_display.c:91:6:Display_displaySpalareLuneta	8	static
