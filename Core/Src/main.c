@@ -616,6 +616,9 @@ void Task_Servo(void *argument)
 void Task_Joystick(void *argument)
 {
   /* USER CODE BEGIN Task_Joystick */
+
+	HAL_ADC_Start_DMA(&hadc, adcValue, 3);
+
   /* Infinite loop */
   for(;;)
   {

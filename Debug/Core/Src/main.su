@@ -8,5 +8,5 @@
 ../Core/Src/main.c:474:13:MX_GPIO_Init	56	static
 ../Core/Src/main.c:527:6:Task_Servo	16	static
 ../Core/Src/main.c:616:6:Task_Joystick	16	static
-../Core/Src/main.c:634:6:Task_LCD	16	static
-../Core/Src/main.c:683:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:637:6:Task_LCD	16	static
+../Core/Src/main.c:686:6:Error_Handler	8	static,ignoring_inline_asm
