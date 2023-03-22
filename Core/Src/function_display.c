@@ -2,95 +2,112 @@
 #include <function_icons.h>
 #include "lcd_st7565.h"
 
-int cleared = 0;		// Pt treptele de viteza
-int displayBusy = 0;	// Pt a evita suprapunerile de imagini
+/// Variabile de control local ///
 
-//Master function?
-void Display_modLucruDisplay(int modDisplay){
-	if (displayBusy == 0 || modDisplay == 0){
-		Icons_clearScreen();
-		cleared = 0;
-		displayBusy = 0;
+int was_screen_cleared = 0; // Verifica daca ecranul a fost curatat. Se foloseste pentru treptele de viteza (functioneaza cu logica negativa)
+int is_display_busy = 0;	// Verifica daca pe display este incarcat deja o matrice a evita suprapunerile de imagini
+
+void Display_master_function(int mod_lucru_display) // Functia Master care primeste modul de lucru al display-ului si apeleaza functia corespunzatoare
+{
+	switch (mod_lucru_display)
+	{
+	case 0:
+		Icons_clear_screen(); // Apeleaza functia de curatare a ecranului
+		was_screen_cleared = 0;
+		is_display_busy = 0;
+		break;
+	case 1:
+		Display_stergere_x1();
+		break;
+	case 2:
+		Display_treapta_1();
+		break;
+	case 3:
+		Display_treapta_2();
+		break;
+	case 4:
+		Display_treapta_3();
+		break;
+	case 5:
+		Display_spalare_parbriz();
+		break;
+	case 6:
+		Display_spalare_luneta();
+		break;
 	}
 
-	if(modDisplay == 1){
-		Display_displayStergereX1();
+	if (is_display_busy == 0) // Daca display-ul nu este incarcat atunci curata ecranul si reseteaza ambele variabile de control
+	{
+		Icons_clear_screen(); // Apeleaza functia de curatare a ecranului
+		was_screen_cleared = 0;
+		is_display_busy = 0;
 	}
-
-	if(modDisplay == 2){
-		Display_displayTreapta1();
-	}
-
-	if(modDisplay == 3){
-		Display_displayTreapta2();
-	}
-
-	if(modDisplay == 4){
-		Display_displayTreapta3();
-	}
-
-	if(modDisplay == 5){
-		Display_displaySpalareParbriz();
-	}
-
-	if(modDisplay == 6){
-		Display_displaySpalareLuneta();
-	}
-
 }
 
 // Functiile pentru afisat modul de lucru
 
-void Display_displayStergereX1(){
-	if(displayBusy == 0){
-		displayBusy = 1;
-		Icons_loadX1();
+void Display_stergere_x1()
+{
+	if (is_display_busy == 0)
+	{
+		is_display_busy = 1;
+		Icons_load_x1();
 	}
 }
 
-void Display_displayTreapta1(){
-		displayBusy = 1;
+void Display_treapta_1()
+{
+	is_display_busy = 1;
 
-		if(cleared != 0){	// Verifica daca este nevoie sa curete ecranul pt afisaj
-			Icons_clearScreen();	// (trecere de la o treapta la alta)
-			cleared = 0;
-		}
+	if (was_screen_cleared != 0)
+	{						 // Verifica daca este nevoie sa curete ecranul pt afisaj
+		Icons_clear_screen(); // (trecere de la o treapta la alta)
+		was_screen_cleared = 0;
+	}
 
-		Icons_loadTreapta1();
+	Icons_load_treapta_1();
 }
 
-void Display_displayTreapta2(){
-		displayBusy = 1;
+void Display_treapta_2()
+{
+	is_display_busy = 1;
 
-		if(cleared != 1){	// Verifica daca este nevoie sa curete ecranul pt afisaj
-			Icons_clearScreen();	// (trecere de la o treapta la alta)
-			cleared = 1;
-		}
+	if (was_screen_cleared != 1)
+	{						 // Verifica daca este nevoie sa curete ecranul pt afisaj
+		Icons_clear_screen(); // (trecere de la o treapta la alta)
+		was_screen_cleared = 1;
+	}
 
-		Icons_loadTreapta2();
+	Icons_load_treapta_2();
 }
 
-void Display_displayTreapta3(){
-		displayBusy = 1;
+void Display_treapta_3()
+{
+	is_display_busy = 1;
 
-		if(cleared != 2){	// Verifica daca este nevoie sa curete ecranul pt afisaj
-			Icons_clearScreen();	// (trecere de la o treapta la alta)
-			cleared = 2;
-		}
+	if (was_screen_cleared != 2)
+	{						 // Verifica daca este nevoie sa curete ecranul pt afisaj
+		Icons_clear_screen(); // (trecere de la o treapta la alta)
+		was_screen_cleared = 2;
+	}
 
-		Icons_loadTreapta3();
+	Icons_load_treapta_3();
 }
 
-void Display_displaySpalareParbriz(){
-	if(displayBusy == 0){
-		displayBusy = 1;
-		Icons_loadSpalareParbriz();
+void Display_spalare_parbriz()
+{
+	if (is_display_busy == 0)
+	{
+		is_display_busy = 1;
+		Icons_load_spalare_parbriz();
 	}
 }
 
-void Display_displaySpalareLuneta(){
-	if(displayBusy == 0){
-		displayBusy = 1;
-		Icons_loadSpalareLuneta();
+void Display_spalare_luneta()
+{
+	if (is_display_busy == 0)
+	{
+		is_display_busy = 1;
+		Icons_load_spalare_luneta();
 	}
 }

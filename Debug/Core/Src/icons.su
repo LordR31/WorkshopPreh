@@ -1,7 +1,0 @@
-../Core/Src/icons.c:414:6:loadX1	24	static
-../Core/Src/icons.c:419:6:loadTreapta1	24	static
-../Core/Src/icons.c:424:6:loadTreapta2	24	static
-../Core/Src/icons.c:429:6:loadTreapta3	24	static
-../Core/Src/icons.c:434:6:loadSpalareParbriz	24	static
-../Core/Src/icons.c:439:6:loadSpalareLuneta	24	static
-../Core/Src/icons.c:445:6:clearScreen	8	static

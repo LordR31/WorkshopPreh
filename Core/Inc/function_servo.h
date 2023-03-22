@@ -1,5 +1,5 @@
 // Master function?
-void Servo_modLucruServo(int modLucru);
+int Servo_master_function(int modLucru, int *counter, int *abort);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////  Codificare mod lucru  ///////////////////////////////////////////
@@ -16,9 +16,9 @@ void Servo_modLucruServo(int modLucru);
 	 */
 
 // Functii prototip pentru modul de lucru al servo motorului
-void Servo_servoStergereX1();
-void Servo_servoTreapta1();
-void Servo_servoTreapta2();
-void Servo_servoTreapta3();
-void Servo_servoSpalareParbriz();
-void Servo_servoSpalareLuneta();
+
+int Servo_up_movement(int *counter, int timeUnit, int *abort);
+int Servo_down_movement(int *counter, int timeUnit, int *abort);
+
+int Servo_spalare_parbriz(int *counter);
+int Servo_spalare_luneta(int *counter);

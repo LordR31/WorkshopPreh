@@ -1,5 +1,4 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/function_display.h \
- ../Core/Inc/function_servo.h ../Core/Inc/main.h \
+Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -44,9 +43,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/function_display.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h \
  ../Core/Inc/lcd_st7565_pinconf.h ../Core/Inc/main.h \
  ../Core/Inc/lcd_st7565.h ../Core/Inc/lcd_st7565_pinconf.h \
- ../Core/Inc/font.h ../Core/Inc/font.h
-../Core/Inc/function_display.h:
-../Core/Inc/function_servo.h:
+ ../Core/Inc/font.h ../Core/Inc/font.h ../Core/Inc/function_display.h \
+ ../Core/Inc/function_servo.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 ../Core/Inc/stm32f0xx_hal_conf.h:
@@ -96,3 +94,5 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/function_display.h \
 ../Core/Inc/lcd_st7565_pinconf.h:
 ../Core/Inc/font.h:
 ../Core/Inc/font.h:
+../Core/Inc/function_display.h:
+../Core/Inc/function_servo.h:
