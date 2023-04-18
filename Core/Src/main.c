@@ -609,13 +609,7 @@ void Task_Servo(void *argument) {
 				display_system_mode = servo_system_mode;
 				break;
 			case 5:
-				Servo_master_function(0, &timer, &abort_signal, &is_first_swipe);
 				Display_master_function(0);
-				is_first_swipe = 1;
-				aux_timer = 0;
-				while(aux_timer < 500){
-					continue;
-				}
 
 				Servo_master_function(5, &timer, &abort_signal, &is_first_swipe);
 				Display_master_function(display_system_mode);

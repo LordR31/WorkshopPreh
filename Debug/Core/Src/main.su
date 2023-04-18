@@ -9,9 +9,9 @@
 ../Core/Src/main.c:493:13:MX_GPIO_Init	56	static
 ../Core/Src/main.c:556:7:speed_function	16	static
 ../Core/Src/main.c:545:6:Task_Servo	24	static
-../Core/Src/main.c:650:7:moving_average	32	static
-../Core/Src/main.c:640:6:Task_Joystick	168	static
-../Core/Src/main.c:743:7:speed_function_LCD	16	static
-../Core/Src/main.c:735:6:Task_LCD	24	static
-../Core/Src/main.c:795:6:Task_CounterUp	16	static
-../Core/Src/main.c:814:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:644:7:moving_average	32	static
+../Core/Src/main.c:634:6:Task_Joystick	168	static
+../Core/Src/main.c:737:7:speed_function_LCD	16	static
+../Core/Src/main.c:729:6:Task_LCD	24	static
+../Core/Src/main.c:789:6:Task_CounterUp	16	static
+../Core/Src/main.c:808:6:Error_Handler	8	static,ignoring_inline_asm
