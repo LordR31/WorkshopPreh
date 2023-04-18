@@ -1,7 +1,8 @@
-../Core/Src/function_icons.c:414:6:Icons_load_x1	24	static
-../Core/Src/function_icons.c:420:6:Icons_load_treapta_1	24	static
-../Core/Src/function_icons.c:426:6:Icons_load_treapta_2	24	static
-../Core/Src/function_icons.c:432:6:Icons_load_treapta_3	24	static
-../Core/Src/function_icons.c:438:6:Icons_load_spalare_parbriz	24	static
-../Core/Src/function_icons.c:444:6:Icons_load_spalare_luneta	24	static
-../Core/Src/function_icons.c:450:6:Icons_clear_screen	8	static
+../Core/Src/function_icons.c:813:5:Icons_start_screen	40	static
+../Core/Src/function_icons.c:857:6:Icons_load_x1	24	static
+../Core/Src/function_icons.c:863:6:Icons_load_treapta_1	24	static
+../Core/Src/function_icons.c:869:6:Icons_load_treapta_2	24	static
+../Core/Src/function_icons.c:875:6:Icons_load_treapta_3	24	static
+../Core/Src/function_icons.c:881:6:Icons_load_spalare_parbriz	24	static
+../Core/Src/function_icons.c:887:6:Icons_load_spalare_luneta	24	static
+../Core/Src/function_icons.c:893:6:Icons_clear_screen	8	static

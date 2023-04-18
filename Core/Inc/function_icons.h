@@ -1,3 +1,5 @@
+int Icons_start_screen(int* timer);
+
 // Functiile prototip pentru incarcat imaginile modului de lucru in buffer
 
 void Icons_load_x1();

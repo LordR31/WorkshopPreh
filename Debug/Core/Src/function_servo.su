@@ -1,5 +1,4 @@
-../Core/Src/function_servo.c:15:5:Servo_master_function	32	static
-../Core/Src/function_servo.c:53:5:Servo_spalare_parbriz	16	static
-../Core/Src/function_servo.c:64:5:Servo_spalare_luneta	16	static
-../Core/Src/function_servo.c:75:5:Servo_up_movement	32	static
-../Core/Src/function_servo.c:99:5:Servo_down_movement	32	static
+../Core/Src/function_servo.c:9:5:Servo_master_function	40	static
+../Core/Src/function_servo.c:45:5:Servo_up_movement	24	static
+../Core/Src/function_servo.c:66:5:Servo_down_movement	24	static
+../Core/Src/function_servo.c:84:5:Servo_spalare	40	static

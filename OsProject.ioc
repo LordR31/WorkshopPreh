@@ -137,6 +137,7 @@ PC2.Mode=IN12
 PC2.Signal=ADC_IN12
 PC3.Mode=IN13
 PC3.Signal=ADC_IN13
+PC4.Locked=true
 PC4.Mode=IN14
 PC4.Signal=ADC_IN14
 PC7.GPIOParameters=PinState,GPIO_Label

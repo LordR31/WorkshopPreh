@@ -44,6 +44,13 @@ void Display_master_function(int mod_lucru_display) // Functia Master care prime
 	}
 }
 
+int Display_start_screen(int* timer){
+	is_display_busy = 1;
+	is_display_busy = Icons_start_screen(timer);
+
+	return 1;
+}
+
 // Functiile pentru afisat modul de lucru
 
 void Display_stergere_x1()

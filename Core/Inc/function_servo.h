@@ -1,5 +1,5 @@
 // Master function?
-int Servo_master_function(int modLucru, int *counter, int *abort);
+int Servo_master_function(int mod_servo, int *timer, int *abort, int *is_first_swipe);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////  Codificare mod lucru  ///////////////////////////////////////////
@@ -11,14 +11,12 @@ int Servo_master_function(int modLucru, int *counter, int *abort);
 	 * mode = 2 -> treapta1
 	 * mode = 3 -> treapta2
 	 * mode = 4 -> treapta3
-	 * mode = 5 -> spalareParbriz
-	 * mode = 6 -> spalareLuneta
+	 * mode = 5 -> spalare
 	 */
 
 // Functii prototip pentru modul de lucru al servo motorului
 
-int Servo_up_movement(int *counter, int timeUnit, int *abort);
-int Servo_down_movement(int *counter, int timeUnit, int *abort);
+int Servo_up_movement(int *timer, int start_time, int end_time, int *abort, int *is_first_swipe);
+int Servo_down_movement(int *timer, int start_time, int end_time, int *abort);
 
-int Servo_spalare_parbriz(int *counter);
-int Servo_spalare_luneta(int *counter);
+int Servo_spalare(int *timer, int* abort, int* is_first_swipe);
