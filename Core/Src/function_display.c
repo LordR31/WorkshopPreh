@@ -44,7 +44,8 @@ void Display_master_function(int mod_lucru_display) // Functia Master care prime
 	}
 }
 
-int Display_start_screen(int* timer){
+int Display_start_screen(int *timer)
+{
 	is_display_busy = 1;
 	is_display_busy = Icons_start_screen(timer);
 
@@ -67,7 +68,7 @@ void Display_treapta_1()
 	is_display_busy = 1;
 
 	if (was_screen_cleared != 0)
-	{						 // Verifica daca este nevoie sa curete ecranul pt afisaj
+	{						  // Verifica daca este nevoie sa curete ecranul pt afisaj
 		Icons_clear_screen(); // (trecere de la o treapta la alta)
 		was_screen_cleared = 0;
 	}
@@ -80,7 +81,7 @@ void Display_treapta_2()
 	is_display_busy = 1;
 
 	if (was_screen_cleared != 1)
-	{						 // Verifica daca este nevoie sa curete ecranul pt afisaj
+	{						  // Verifica daca este nevoie sa curete ecranul pt afisaj
 		Icons_clear_screen(); // (trecere de la o treapta la alta)
 		was_screen_cleared = 1;
 	}
@@ -93,7 +94,7 @@ void Display_treapta_3()
 	is_display_busy = 1;
 
 	if (was_screen_cleared != 2)
-	{						 // Verifica daca este nevoie sa curete ecranul pt afisaj
+	{						  // Verifica daca este nevoie sa curete ecranul pt afisaj
 		Icons_clear_screen(); // (trecere de la o treapta la alta)
 		was_screen_cleared = 2;
 	}

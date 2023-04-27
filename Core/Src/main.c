@@ -37,13 +37,11 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-# define DOWN 100	// Pragul inferior inferior de lucru
-# define UP 4000  // Pragul superior de lucru
-# define IDLE_LOW 1800  // Pragul inferior de idle
-# define IDLE_HIGH 2400 // Pragul superior de idle
-# define JOYSTICK_X averaged_ADC_values[0] // Joystick Sus-Jos
-# define JOYSTICK_Y averaged_ADC_values[1] // Joystick Dreapta-Stanga
-# define JOYSTICK_BUTTON averaged_ADC_values[2] // Joystick Apasare
+#define DOWN 500							   // Pragul inferior inferior de lucru
+#define UP 3900								   // Pragul superior de lucru
+#define JOYSTICK_X averaged_ADC_values[0]	   // Joystick Sus-Jos
+#define JOYSTICK_Y averaged_ADC_values[1]	   // Joystick Dreapta-Stanga
+#define JOYSTICK_BUTTON averaged_ADC_values[2] // Joystick Apasare
 
 #define ADC_COUNT 3
 #define BUFFER_SIZE 10
@@ -67,20 +65,33 @@ UART_HandleTypeDef huart2;
 
 /* Definitions for Servo */
 osThreadId_t ServoHandle;
-const osThreadAttr_t Servo_attributes = { .name = "Servo",
-		.stack_size = 128 * 4, .priority = (osPriority_t) osPriorityNormal, };
+const osThreadAttr_t Servo_attributes = {
+	.name = "Servo",
+	.stack_size = 128 * 4,
+	.priority = (osPriority_t)osPriorityNormal,
+};
 /* Definitions for Joystick */
 osThreadId_t JoystickHandle;
-const osThreadAttr_t Joystick_attributes = { .name = "Joystick", .stack_size =
-		128 * 4, .priority = (osPriority_t) osPriorityNormal, };
+const osThreadAttr_t Joystick_attributes = {
+	.name = "Joystick",
+	.stack_size =
+		128 * 4,
+	.priority = (osPriority_t)osPriorityNormal,
+};
 /* Definitions for LCD */
 osThreadId_t LCDHandle;
-const osThreadAttr_t LCD_attributes = { .name = "LCD", .stack_size = 128 * 4,
-		.priority = (osPriority_t) osPriorityNormal, };
+const osThreadAttr_t LCD_attributes = {
+	.name = "LCD",
+	.stack_size = 128 * 4,
+	.priority = (osPriority_t)osPriorityNormal,
+};
 /* Definitions for Counter */
 osThreadId_t CounterHandle;
-const osThreadAttr_t Counter_attributes = { .name = "Counter", .stack_size = 128
-		* 4, .priority = (osPriority_t) osPriorityNormal, };
+const osThreadAttr_t Counter_attributes = {
+	.name = "Counter",
+	.stack_size = 128 * 4,
+	.priority = (osPriority_t)osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -105,14 +116,15 @@ void Task_CounterUp(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint32_t current_speed = 0; // Numar treapta viteza curenta
-uint32_t previous_speed = 0;
-uint32_t change_speed = 1;  // Semnal pentru incrementarea treptelor de viteza
-uint32_t averaged_ADC_values[3];
-uint32_t instant_ADC_values[3]; // Stocheaza valorile instante citite de la ADC
-uint32_t lucru_in_trepte = 0;
-uint32_t servo_system_mode = 0; // Variabila este setata in Task-ul de Joystick si folosita atat in Task-ul de Servo cat si cel de LCD pentru a dicta functionarea sistemului
-uint32_t display_system_mode = 0;
+uint32_t current_speed = 0;		  // Numar treapta viteza curenta
+uint32_t previous_speed = 0;	  // Retine treapta anterioara de viteza
+uint32_t change_speed = 1;		  // Semnal pentru incrementarea treptelor de viteza
+uint32_t averaged_ADC_values[3];  // Stocheaza valorile mediate ale ADC-ului
+uint32_t instant_ADC_values[3];	  // Stocheaza valorile instante citite de la ADC
+uint32_t lucru_in_trepte = 0;	  // Flag pentru lucrul in trepte de viteza
+uint32_t servo_mode = 0;		  // Seteaza modul de lucru servo
+uint32_t display_mode = 0; // Seteaza modul de lucru display
+
 /////////////// Codificare mod_lucru_sistem ///////////////
 /// 			0 - idle/stop/reset					    ///
 /// 			1 - wipe x1							    ///
@@ -123,22 +135,24 @@ uint32_t display_system_mode = 0;
 ///////////////////////////////////////////////////////////
 
 int system_initialized = 0; // Opreste orice operatie a servomotorului si a displayului pana cand sistemul nu a fost initializat
-int timer = 0; // Timer incrementat in Task-ul TimerUp pentru diferitele moduri de lucru cu servomotorul
-int aux_timer = 0; // Timer incrementat in Task-ul TimerUp pentru blocarea/stoparea incrementarii/decrementarii accidentale a treptelor de viteza
-int abort_signal = 0; // Semanl de abort folosit pentru oprirea fortata a modurilor de lucru
+int timer = 0;				// Timer incrementat in Task-ul TimerUp pentru diferitele moduri de lucru cu servomotorul
+int aux_timer = 0;			// Timer incrementat in Task-ul TimerUp pentru blocarea/stoparea incrementarii/decrementarii accidentale a treptelor de viteza
+int abort_signal = 0;		// Semanl de abort folosit pentru oprirea fortata a modurilor de lucru
+int stop = 0;				// Semnal de stop pentru spalare parbriz/luneta in timpul lucrului in trepte
 int is_first_swipe = 1;		// Asigura prima stergere instanta
 
-void system_init() // Functie care verifica daca sistemul s-a initializat (prin verificarea daca adc-ul a citit sau nu valori)
+void system_init()
 {
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); // Porneste PWM pe timer 3 canal 4 (pin PB1)
-	HAL_ADC_Start_DMA(&hadc, instant_ADC_values, 3); // Initializeaza ADC-ul si ii stocheaza valorile citite instante
+	// Porneste PWM pe timer 3 canal 4 (pin PB1)
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+	// Initializeaza ADC-ul si ii stocheaza valorile citite instante
+	HAL_ADC_Start_DMA(&hadc, instant_ADC_values, 3);
 
 	// Se initializeaza display-ul si se activeaza backlight-ul
 	st7565_init();
 	st7565_backlight_enable();
 
 	timer = 0;
-	//if (averaged_ADC_values[0] > IDLE_LOW && averaged_ADC_values[0] < IDLE_HIGH && averaged_ADC_values[1] > IDLE_LOW && averaged_ADC_values[1] < IDLE_HIGH && averaged_ADC_values[2] > IDLE_LOW && averaged_ADC_values[2] < IDLE_HIGH)
 	system_initialized = Display_start_screen(&timer);
 }
 /* USER CODE END 0 */
@@ -147,7 +161,8 @@ void system_init() // Functie care verifica daca sistemul s-a initializat (prin 
  * @brief  The application entry point.
  * @retval int
  */
-int main(void) {
+int main(void)
+{
 	/* USER CODE BEGIN 1 */
 
 	/* USER CODE END 1 */
@@ -225,7 +240,8 @@ int main(void) {
 	/* We should never get here as control is now taken by the scheduler */
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
-	while (1) {
+	while (1)
+	{
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
@@ -237,16 +253,16 @@ int main(void) {
  * @brief System Clock Configuration
  * @retval None
  */
-void SystemClock_Config(void) {
-	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
-	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
+void SystemClock_Config(void)
+{
+	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
 	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI14
-			| RCC_OSCILLATORTYPE_HSE;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI14 | RCC_OSCILLATORTYPE_HSE;
 	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
 	RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
 	RCC_OscInitStruct.HSI14CalibrationValue = 16;
@@ -254,24 +270,26 @@ void SystemClock_Config(void) {
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;
 	RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV2;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
 		Error_Handler();
 	}
 
 	/** Initializes the CPU, AHB and APB buses clocks
 	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1;
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+	{
 		Error_Handler();
 	}
 	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2;
 	PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+	{
 		Error_Handler();
 	}
 }
@@ -281,13 +299,14 @@ void SystemClock_Config(void) {
  * @param None
  * @retval None
  */
-static void MX_ADC_Init(void) {
+static void MX_ADC_Init(void)
+{
 
 	/* USER CODE BEGIN ADC_Init 0 */
 
 	/* USER CODE END ADC_Init 0 */
 
-	ADC_ChannelConfTypeDef sConfig = { 0 };
+	ADC_ChannelConfTypeDef sConfig = {0};
 
 	/* USER CODE BEGIN ADC_Init 1 */
 
@@ -309,7 +328,8 @@ static void MX_ADC_Init(void) {
 	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
 	hadc.Init.DMAContinuousRequests = ENABLE;
 	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-	if (HAL_ADC_Init(&hadc) != HAL_OK) {
+	if (HAL_ADC_Init(&hadc) != HAL_OK)
+	{
 		Error_Handler();
 	}
 
@@ -318,27 +338,29 @@ static void MX_ADC_Init(void) {
 	sConfig.Channel = ADC_CHANNEL_12;
 	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
 	sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK) {
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
 		Error_Handler();
 	}
 
 	/** Configure for the selected ADC regular channel to be converted.
 	 */
 	sConfig.Channel = ADC_CHANNEL_13;
-	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK) {
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
 		Error_Handler();
 	}
 
 	/** Configure for the selected ADC regular channel to be converted.
 	 */
 	sConfig.Channel = ADC_CHANNEL_14;
-	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK) {
+	if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+	{
 		Error_Handler();
 	}
 	/* USER CODE BEGIN ADC_Init 2 */
 
 	/* USER CODE END ADC_Init 2 */
-
 }
 
 /**
@@ -346,7 +368,8 @@ static void MX_ADC_Init(void) {
  * @param None
  * @retval None
  */
-static void MX_SPI1_Init(void) {
+static void MX_SPI1_Init(void)
+{
 
 	/* USER CODE BEGIN SPI1_Init 0 */
 
@@ -370,13 +393,13 @@ static void MX_SPI1_Init(void) {
 	hspi1.Init.CRCPolynomial = 7;
 	hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
 	hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
-	if (HAL_SPI_Init(&hspi1) != HAL_OK) {
+	if (HAL_SPI_Init(&hspi1) != HAL_OK)
+	{
 		Error_Handler();
 	}
 	/* USER CODE BEGIN SPI1_Init 2 */
 
 	/* USER CODE END SPI1_Init 2 */
-
 }
 
 /**
@@ -384,15 +407,16 @@ static void MX_SPI1_Init(void) {
  * @param None
  * @retval None
  */
-static void MX_TIM3_Init(void) {
+static void MX_TIM3_Init(void)
+{
 
 	/* USER CODE BEGIN TIM3_Init 0 */
 
 	/* USER CODE END TIM3_Init 0 */
 
-	TIM_ClockConfigTypeDef sClockSourceConfig = { 0 };
-	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
-	TIM_OC_InitTypeDef sConfigOC = { 0 };
+	TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+	TIM_MasterConfigTypeDef sMasterConfig = {0};
+	TIM_OC_InitTypeDef sConfigOC = {0};
 
 	/* USER CODE BEGIN TIM3_Init 1 */
 
@@ -403,35 +427,37 @@ static void MX_TIM3_Init(void) {
 	htim3.Init.Period = 20000 - 1;
 	htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	if (HAL_TIM_Base_Init(&htim3) != HAL_OK) {
+	if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+	{
 		Error_Handler();
 	}
 	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-	if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK) {
+	if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+	{
 		Error_Handler();
 	}
-	if (HAL_TIM_PWM_Init(&htim3) != HAL_OK) {
+	if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+	{
 		Error_Handler();
 	}
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig)
-			!= HAL_OK) {
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+	{
 		Error_Handler();
 	}
 	sConfigOC.OCMode = TIM_OCMODE_PWM1;
 	sConfigOC.Pulse = 0;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-	if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4)
-			!= HAL_OK) {
+	if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+	{
 		Error_Handler();
 	}
 	/* USER CODE BEGIN TIM3_Init 2 */
 
 	/* USER CODE END TIM3_Init 2 */
 	HAL_TIM_MspPostInit(&htim3);
-
 }
 
 /**
@@ -439,7 +465,8 @@ static void MX_TIM3_Init(void) {
  * @param None
  * @retval None
  */
-static void MX_USART2_UART_Init(void) {
+static void MX_USART2_UART_Init(void)
+{
 
 	/* USER CODE BEGIN USART2_Init 0 */
 
@@ -458,19 +485,20 @@ static void MX_USART2_UART_Init(void) {
 	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
 	huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
 	huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-	if (HAL_UART_Init(&huart2) != HAL_OK) {
+	if (HAL_UART_Init(&huart2) != HAL_OK)
+	{
 		Error_Handler();
 	}
 	/* USER CODE BEGIN USART2_Init 2 */
 
 	/* USER CODE END USART2_Init 2 */
-
 }
 
 /**
  * Enable DMA controller clock
  */
-static void MX_DMA_Init(void) {
+static void MX_DMA_Init(void)
+{
 
 	/* DMA controller clock enable */
 	__HAL_RCC_DMA1_CLK_ENABLE();
@@ -482,7 +510,6 @@ static void MX_DMA_Init(void) {
 	/* DMA1_Ch2_3_DMA2_Ch1_2_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(DMA1_Ch2_3_DMA2_Ch1_2_IRQn, 3, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Ch2_3_DMA2_Ch1_2_IRQn);
-
 }
 
 /**
@@ -490,8 +517,9 @@ static void MX_DMA_Init(void) {
  * @param None
  * @retval None
  */
-static void MX_GPIO_Init(void) {
-	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+static void MX_GPIO_Init(void)
+{
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
 	/* GPIO Ports Clock Enable */
 	__HAL_RCC_GPIOC_CLK_ENABLE();
@@ -528,7 +556,6 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(SPICS_GPIO_Port, &GPIO_InitStruct);
-
 }
 
 /* USER CODE BEGIN 4 */
@@ -542,85 +569,105 @@ static void MX_GPIO_Init(void) {
  * @retval None
  */
 /* USER CODE END Header_Task_Servo */
-void Task_Servo(void *argument) {
+void Task_Servo(void *argument)
+{
 	/* USER CODE BEGIN 5 */
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////   Implementare Task Servomotor   //////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	if (!system_initialized) {
+	if (!system_initialized)
+	{
 		system_init();
 	}
 
 	// Functie auxiliara pentru modul de lucru in trepte de viteza
-	void speed_function() {
-		switch (current_speed) {
-		case 0:	// Case 0: se intra atunci cand treapta de viteza a ajuns la 0 si se doreste oprirea stergatorului
-			servo_system_mode = Servo_master_function(0, &timer, &abort_signal, &is_first_swipe); // Se paseaza la functia master Servo_master_function() modul de lucru (0, oprire), pointerul catre timer si pointerul catre semnalul de abort
+	void speed_function()
+	{
+		switch (current_speed)
+		{
+		case 0:
+			servo_mode = Servo_master_function(0, &timer, &abort_signal, &stop, &is_first_swipe);
 			break;
-		case 1:	// Case 1: se intra atunci cand se ajunge la treata 1 de viteza
-			Servo_master_function(2, &timer, &abort_signal, &is_first_swipe); // Se paseaza la functia master Servo_master_function() modul de lucru (2, treapta 1), pointerul catre timer si pointerul catre semnalul de abort
+		case 1:
+			Servo_master_function(2, &timer, &abort_signal, &stop, &is_first_swipe);
 			break;
-		case 2:	// Case 2: se intra atunci cand se ajunge la treapta 2 de viteza
-			Servo_master_function(3, &timer, &abort_signal, &is_first_swipe); // Se paseaza la functia master Servo_master_function() modul de lucru (3, treapta 2), pointerul catre timer si pointerul catre semnalul de abort
+		case 2:
+			Servo_master_function(3, &timer, &abort_signal, &stop, &is_first_swipe);
 			break;
-		case 3:	// Case 3: se intra atunci cand se ajunge la treapta 3 de viteza
-			Servo_master_function(4, &timer, &abort_signal, &is_first_swipe); // Se paseaza la functia master Servo_master_function() modul de lucru (4, treapta 3), pointerul catre timer si pointerul catre semnalul de abort
+		case 3:
+			Servo_master_function(4, &timer, &abort_signal, &stop, &is_first_swipe);
 			break;
 		}
 	}
 
-	for (;;) {
-		if (system_initialized == 1) {
-			switch (servo_system_mode) // Primeste de la Task-ul de Read_Joystick modul de lucru (mod_lucru_sistem)
+	for (;;)
+	{
+		if (system_initialized == 1)
+		{
+			switch (servo_mode)
 			{
-			case 0:	// Case 0: modul idle sau reset. Servo motorul este adus si sta in pozitia 0
-				Servo_master_function(0, &timer, &abort_signal, &is_first_swipe); // Se paseaza la functia master Servo_master_function() modul de lucru (0, oprire), pointerul catre timer si pointerul catre semnalul de abort
-				abort_signal = 0; // In cazul in care a fost folosit semnalul abort, acesta se readuce la 0 pentru a se putea continua functionarea normala a sistemului
+			case 0:
+				Servo_master_function(0, &timer, &abort_signal, &stop, &is_first_swipe);
+				abort_signal = 0;
 				is_first_swipe = 1;
 				break;
-			case 1:											// Case 1: wipe x1
-				servo_system_mode = Servo_master_function(1, &timer, &abort_signal, &is_first_swipe); // Se paseaza la functia master Servo_master_function() modul de lucru (1, wipe x1), pointerul catre timer si pointerul catre semnalul de abort
-				break;
-			case 2:	// Case 2: lucru pe trepte de viteza, modul de incrementare a treptei de viteza
-				if (current_speed < 3 && change_speed == 1) // Se verifica daca este necesara incrementarea treptei de viteza (pana la treapta_curenta = 3) folosind semnalul schimba_treapta primit de la task-ul Read_Joystick
-						{
-					aux_timer = 0; // reseteaza de fiecare data timer_trepte
-					current_speed++;	 // Se incrementeaza treapta
-					change_speed = 0; // Se reseteaza semnalul de schimba_treapta
+			case 1: // wipe x1
+				servo_mode = Servo_master_function(1, &timer, &abort_signal, &stop, &is_first_swipe);
+				aux_timer = 0;
+				while (aux_timer < 250)
+				{
+					continue;
 				}
-				speed_function(); // Se foloseste functia de lucru_in_trepte()
+				display_mode = servo_mode;
+				break;
+			case 2: // lucru in trepte (cu incrementare)
+				// Se verifica daca este necesara incrementarea treptei de viteza folosind semnalul schimba_treapta primit de la Joystick
+				if (current_speed < 3 && change_speed == 1)
+				{
+					aux_timer = 0;	  // Reseteaza de fiecare data timer-ul
+					current_speed++;  // Se incrementeaza treapta
+					change_speed = 0; // Se reseteaza flag-ul
+				}
+				speed_function();
 				is_first_swipe = 0;
 
 				break;
-			case 3:	// Case 3: lucru in trepte de viteza, modul de decrementare a treptei de viteza
-				if (current_speed > 0 && change_speed == 1) // Se verifica daca este necesara decrementarea treptei de viteza (pana la treapta_curenta = 0) folosind semnalul schimba_treapta primit de la task-ul de Read_Joystick
-						{
-					current_speed--;	 // Se decrementeaza treapta
-					if(current_speed == 0)
+			case 3: // lucru in trepte (cu decrementare)
+				// Se verifica daca este necesara decrementarea treptei de viteza folosind semnalul schimba_treapta primit de la Joystick
+				if (current_speed > 0 && change_speed == 1)
+				{
+					current_speed--; // Se decrementeaza treapta
+					if (current_speed == 0)
 						lucru_in_trepte = 0;
-					change_speed = 0; // Se reseteaza semnalul de schimba_treapta
+					change_speed = 0; // Se reseteaza flag-ul
 				}
-				speed_function(); // Se foloseste functia de lucru_in_trepte()
+				speed_function();
 				is_first_swipe = 0;
 				break;
-			case 4:								// Case 4: modul spalare parbriz
-				servo_system_mode = Servo_master_function(5, &timer, &abort_signal, &is_first_swipe); // Se paseaza la functia master Servo_master_function() moodul de lucru(5, spalare parbriz), pointerul catre timer si pointerul catre semnalul de abort
-				display_system_mode = servo_system_mode;
+			case 4: // spalare
+				servo_mode = Servo_master_function(5, &timer, &abort_signal, &stop, &is_first_swipe);
+				display_mode = servo_mode;
 				break;
-			case 5:
+			case 5: // intrerupere lucru in trepte -> spalare -> lucru in trepte
 				Display_master_function(0);
+				stop = 1;
+				aux_timer = 0;
+				while(aux_timer < 300);
+				stop = 0;
 
-				Servo_master_function(5, &timer, &abort_signal, &is_first_swipe);
-				Display_master_function(display_system_mode);
+				Servo_master_function(5, &timer, &abort_signal, &stop, &is_first_swipe);
+				Display_master_function(display_mode);
 
-				servo_system_mode = 2;
-				display_system_mode = 2;
-				break;
+				servo_mode = 2;
+				display_mode = 2;
 			}
 		}
-		osDelay(1); // Task-ul se reapeleaza automat la 1ms
+		osDelay(1);
 	}
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////   End of Implementare Task Servomotor   //////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/* USER CODE END 5 */
 }
 
@@ -631,91 +678,108 @@ void Task_Servo(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_Task_Joystick */
-void Task_Joystick(void *argument) {
+void Task_Joystick(void *argument)
+{
 	/* USER CODE BEGIN Task_Joystick */
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////   Implementare Task Joystick   ////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	int adcBuffer[ADC_COUNT][BUFFER_SIZE] = { 0 };
-	int sum[ADC_COUNT] = { 0 };
+	int adcBuffer[ADC_COUNT][BUFFER_SIZE] = {0};
+	int sum[ADC_COUNT] = {0};
 	int index = 0;
 
-	void moving_average() {
-		for (int i = 0; i < ADC_COUNT; i++) {
-			sum[i] += instant_ADC_values[i] - adcBuffer[i][index]; // add new measurement to sum and subtract the oldest measurement
-			adcBuffer[i][index] = instant_ADC_values[i]; // store new measurement in buffer
+	void moving_average()
+	{
+		for (int i = 0; i < ADC_COUNT; i++)
+		{
+			sum[i] += instant_ADC_values[i] - adcBuffer[i][index];
+			adcBuffer[i][index] = instant_ADC_values[i];
 
-			if (sum[i] >= 0) {
+			if (sum[i] >= 0)
+			{
 				averaged_ADC_values[i] = sum[i] / BUFFER_SIZE;
-			} else {
+			}
+			else
+			{
 				averaged_ADC_values[i] = 0;
 			}
 		}
 		index = (index + 1) % BUFFER_SIZE;
 	}
 
-	for (;;) {
+	for (;;)
+	{
 		moving_average();
 
-		if (system_initialized) // Dupa ce sistemul a fost initializat se incepe functionarea normala
+		if (system_initialized)
 		{
-			if (JOYSTICK_BUTTON<= DOWN) {
-				servo_system_mode = 0; // Modul de lucru se trece in 0 (oprire/reset)
-				display_system_mode = 0;
-				abort_signal = 1;// Semnalul de abort se face 1 pentru a oprii orice operatie
-				current_speed = 0;// Se reseteaza treapta de viteza
+			if (JOYSTICK_BUTTON <= DOWN)
+			{
+				servo_mode = 0; // Modul de lucru se trece in 0 (oprire/reset)
+				display_mode = 0;
+				abort_signal = 1;  // Semnalul de abort se face 1 pentru a oprii orice operatie
+				current_speed = 0; // Se reseteaza treapta de viteza
 				lucru_in_trepte = 0;
 			}
 
-			if (JOYSTICK_X <= DOWN && current_speed > 0) // Cazul Joystick Jos in timpul functionarii pe trepte de viteza
+			if (JOYSTICK_X <= DOWN && current_speed > 0) // Joystick Jos
 			{
-				servo_system_mode = 3; // Modul de lucru se trece in 3 (lucru in trepte, cazul decrementare treapta de viteza)
-				display_system_mode = 3;
+				servo_mode = 3;
+				display_mode = 3;
 				lucru_in_trepte = 1;
-				if (aux_timer > 150)// Se verifica daca a trecut timpul minim de 150ms pentru a nu se decrementa accidental de mai multe ori treapta de viteza
-				change_speed = 1;// In cazul in care timpul minim a expirat, semnalul schimba_treapta se trece in 1 pentru a permite decrementarea treptei de viteza
+				if (aux_timer > 150)  // Se verifica daca a trecut timpul minim de 150ms pentru a nu se decrementa accidental de mai multe ori treapta de viteza
+					change_speed = 1; // In cazul in care timpul minim a expirat, semnalul schimba_treapta se trece in 1 pentru a permite decrementarea treptei de viteza
 			}
 			else
 			{
-				if (JOYSTICK_X <= DOWN && current_speed == 0) // Cazul: Joystick Jos in afara functionarii pe trepte de viteza
+				if (JOYSTICK_X <= DOWN && current_speed == 0)
 				{
-					servo_system_mode = 1; // Modul de lucru se trece in 1 (wipe x1)
-					display_system_mode = 1;
+					// Modul de lucru se trece in 1 (wipe x1)
+					display_mode = 1;
+					servo_mode = 1;
 				}
 			}
 
-			if (JOYSTICK_X >= UP) // Cazul Joystick Sus
+			if (JOYSTICK_X >= UP) // Joystick Sus
 			{
-				servo_system_mode = 2; // Modul de lucru se trece in 2 (lucru pe trepte de viteza, cazul incrementare treapta de viteza)
-				display_system_mode = 2;
+				servo_mode = 2;
+				display_mode = 2;
 				lucru_in_trepte = 1;
-				if (aux_timer > 150)// Se verifica daca a trecut timpul minim de 150ms pentru a nu se incrementa accidental de mai multe ori treapta de viteza
-				change_speed = 1;// In cazul in care timpul minim a expirat, semnalul schimba_treapta se trece in 1 pentru a permite incrementarea treptei de viteza
+				if (aux_timer > 150)  // Se verifica daca a trecut timpul minim de 150ms pentru a nu se incrementa accidental de mai multe ori treapta de viteza
+					change_speed = 1; // In cazul in care timpul minim a expirat, semnalul schimba_treapta se trece in 1 pentru a permite incrementarea treptei de viteza
 			}
 
-			if (JOYSTICK_Y <= DOWN) // Cazul Joystick Stanga
+			if (JOYSTICK_Y <= DOWN) // Joystick Stanga
 			{
-				if(lucru_in_trepte) {
-					servo_system_mode = 5;
-					display_system_mode = 4;
-				} else
-				servo_system_mode = 4; // Modul de lucru se trece in 4 (modul spalare)
-				display_system_mode = 4;
+				if (lucru_in_trepte)
+				{
+					servo_mode = 5;
+					display_mode = 4;
+				}
+				else
+					servo_mode = 4;
+				display_mode = 4;
 			}
 
-			if (JOYSTICK_Y >= UP) // Cazul Joystick Dreapta
+			if (JOYSTICK_Y >= UP) // Joystick Dreapta
 			{
-				if(lucru_in_trepte) {
-					servo_system_mode = 5;
-					display_system_mode = 5;
-				} else
-				servo_system_mode = 4; // Modul de lucru se trece in 4 (modul spalare)
-				display_system_mode = 5;
+				if (lucru_in_trepte)
+				{
+					servo_mode = 5;
+					display_mode = 5;
+				}
+				else
+					servo_mode = 4;
+				display_mode = 5;
 			}
 		}
 		osDelay(1); // Task-ul se reapeleaza automat la 1ms
 	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////   End of Implementare Task Joystick   ////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/* USER CODE END Task_Joystick */
 }
 
@@ -726,7 +790,8 @@ void Task_Joystick(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_Task_LCD */
-void Task_LCD(void *argument) {
+void Task_LCD(void *argument)
+{
 	/* USER CODE BEGIN Task_LCD */
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -734,36 +799,41 @@ void Task_LCD(void *argument) {
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Functie auxiliara pentru modul de lucru in trepte de viteza
 	// Este apelata din interiorul for(;;) pe case-urile 2 si 3 ale switch-ului
-	void speed_function_LCD() {
-		switch (current_speed) {
-		case 0:	// Case 0: se intra atunci cand treapta de viteza a ajuns la 0 si se doreste oprirea stergatorului
+	void speed_function_LCD()
+	{
+		switch (current_speed)
+		{
+		case 0:							// Case 0: se intra atunci cand treapta de viteza a ajuns la 0 si se doreste oprirea stergatorului
 			Display_master_function(0); // Se apeleaza functia master Display_mod_lucru_Display() cu parametrul 0 (reset/oprire)
 			break;
-		case 1:	// Case 1: se intra atunci cand se ajunge la treapta 1 de viteza
+		case 1:							// Case 1: se intra atunci cand se ajunge la treapta 1 de viteza
 			Display_master_function(2); // Se apeleaza functia master Display_mod_lucru_Display() cu parametrul 2 (treapta 1)
 			break;
-		case 2:	// Case 2: se intra atunci cand se ajunge la treapta 2 de viteza
+		case 2:							// Case 2: se intra atunci cand se ajunge la treapta 2 de viteza
 			Display_master_function(3); // Se apeleaza functia master Display_mod_lucru_Display() cu parametrul 3 (treapta 2)
 			break;
-		case 3:	// Case 3: se intra atunci cand se ajunge la treapta 3 de viteza
+		case 3:							// Case 3: se intra atunci cand se ajunge la treapta 3 de viteza
 			Display_master_function(4); // Se apeleaza functia master Display_mod_lucru_display() cu paramentrul 4 (treapta 4)
 			break;
 		}
 	}
 
-	for (;;) {
-		if (system_initialized == 1) {
-			switch (display_system_mode) {
+	for (;;)
+	{
+		if (system_initialized == 1)
+		{
+			switch (display_mode)
+			{
 			case 0:							// Case 0: modul idle/reset
 				Display_master_function(0); // Se apeleaza functia master Display_mod_lucru_display() cu parametrul 0 (idle/reset)
 				break;
 			case 1:							// Case 1: modul wipe x1
 				Display_master_function(1); // Se apeleaza functia master Display_mod_lucru_display() cu parametrul 1 (wipe x1)
 				break;
-			case 2:	// Case 2: modul de lucru in trepte, cazul incrementare treapta de viteza
+			case 2:					  // Case 2: modul de lucru in trepte, cazul incrementare treapta de viteza
 				speed_function_LCD(); // Se apeleaza functia lucru_in_trepte_LCD()
 				break;
-			case 3:	// Case 3: modul de lucru in trepte, cazul decrementare treapta de viteza
+			case 3:					  // Case 3: modul de lucru in trepte, cazul decrementare treapta de viteza
 				speed_function_LCD(); // Se apeleaza functia lucru_in_trepte_LCD()
 				break;
 			case 4:							// Case 4: modul spalare parbriz
@@ -786,17 +856,19 @@ void Task_LCD(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_Task_CounterUp */
-void Task_CounterUp(void *argument) {
+void Task_CounterUp(void *argument)
+{
 	/* USER CODE BEGIN Task_CounterUp */
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////   Implementare Task TimerUp   ///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	for (;;) {
-		timer++;		// Incrementeaza timer pentru lucrul cu servomotorul
-		aux_timer++; // Incrementeaza timer_trepte pentru evitarea incrementarii/decrementarii de mai multe ori a treptei de viteza 
+	for (;;)
+	{
+		timer++;	 // Incrementeaza timer pentru lucrul cu servomotorul
+		aux_timer++; // Incrementeaza timer_trepte pentru evitarea incrementarii/decrementarii de mai multe ori a treptei de viteza
 
-		osDelay(1);	// Task-ul se reapeleaza la 1ms astfel ca ambele timere masoara in ms
+		osDelay(1); // Task-ul se reapeleaza la 1ms astfel ca ambele timere masoara in ms
 	}
 	/* USER CODE END Task_CounterUp */
 }
@@ -805,28 +877,30 @@ void Task_CounterUp(void *argument) {
  * @brief  This function is executed in case of error occurrence.
  * @retval None
  */
-void Error_Handler(void) {
+void Error_Handler(void)
+{
 	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	__disable_irq();
-	while (1) {
+	while (1)
+	{
 	}
 	/* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
+	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
 	   ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

@@ -1,4 +1,4 @@
 ../Core/Src/function_servo.c:7:5:Servo_master_function	40	static
-../Core/Src/function_servo.c:44:5:Servo_up_movement	24	static
-../Core/Src/function_servo.c:69:5:Servo_down_movement	24	static
+../Core/Src/function_servo.c:43:5:Servo_up_movement	24	static
+../Core/Src/function_servo.c:67:5:Servo_down_movement	24	static
 ../Core/Src/function_servo.c:92:5:Servo_spalare	40	static

@@ -1,5 +1,5 @@
 // Master function?
-int Servo_master_function(int mod_servo, int *timer, int *abort, int *is_first_swipe);
+int Servo_master_function(int mod_servo, int *timer, int *abort_signal, int *stop, int *is_first_swipe);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////  Codificare mod lucru  ///////////////////////////////////////////
@@ -16,7 +16,7 @@ int Servo_master_function(int mod_servo, int *timer, int *abort, int *is_first_s
 
 // Functii prototip pentru modul de lucru al servo motorului
 
-int Servo_up_movement(int *timer, int start_time, int end_time, int *abort, int *is_first_swipe);
-int Servo_down_movement(int *timer, int start_time, int end_time, int *abort);
+int Servo_up_movement(int *timer, int start_time, int end_time, int *abort_signal, int *is_first_swipe);
+int Servo_down_movement(int *timer, int start_time, int end_time, int *abort_signal, int *stop);
 
-int Servo_spalare(int *timer, int* abort, int* is_first_swipe);
+int Servo_spalare(int *timer, int* abort_signal, int *stop, int* is_first_swipe);
